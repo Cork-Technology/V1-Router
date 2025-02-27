@@ -1,4 +1,4 @@
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {IPSMcore} from "Depeg-swap/contracts/interfaces/IPSMcore.sol";
 import {IVault} from "Depeg-swap/contracts/interfaces/IVault.sol";

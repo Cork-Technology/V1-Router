@@ -1,4 +1,4 @@
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {State} from "./State.sol";
 import {AbtractAction} from "./AbstractAction.sol";
