@@ -69,4 +69,9 @@ contract TestBase is Helper {
         params.extRouter = address(mockAggregator);
         params.extRouterData = "";
     }
+
+    function _verifyNoFunds(address token, address target) internal {
+        uint256 balance = IERC20(token).balanceOf(target);
+        assertEq(balance, 0);
+    }
 }

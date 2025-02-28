@@ -3,13 +3,11 @@ pragma solidity ^0.8.26;
 
 import {State} from "./State.sol";
 import {AbtractAction} from "./AbstractAction.sol";
-import {TransferHelper} from "./lib/TransferHelper.sol";
 import {ICorkSwapAggregator} from "./interfaces/ICorkSwapAggregator.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
+import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 
-contract CorkRouterV1 is State, AbtractAction {
-    using TransferHelper for address;
-
+contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
     constructor(address __core, address __flashSwapRouter, address __hook) State(__core, __flashSwapRouter, __hook) {}
 
     function depositPsm(ICorkSwapAggregator.SwapParams calldata params, Id id) external returns (uint256 received) {
@@ -32,5 +30,9 @@ contract CorkRouterV1 is State, AbtractAction {
         received = _vault().depositLv(id, amount, raTolerance, ctTolerance);
 
         _transferAllLvToUser(id);
+    }
+
+    function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
+        _handleLvRedeem(tokens, routerData);
     }
 }
