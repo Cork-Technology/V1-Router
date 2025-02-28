@@ -1,11 +1,5 @@
 pragma solidity ^0.8.26;
 
-<<<<<<< Updated upstream
-import {TestHelper} from "Depeg-swap/test/forge/Helper.sol";
-
-contract TestBase is TestHelper {
-    function a() internal {}
-=======
 import {Helper} from "Depeg-swap/test/forge/Helper.sol";
 import {MockAggregator} from "./MockAggregator.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
@@ -62,5 +56,4 @@ contract TestBase is Helper {
         IERC20(token).approve(tp, type(uint128).max);
         vm.stopPrank();
     }
->>>>>>> Stashed changes
 }
