@@ -11,18 +11,36 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract TestBase is Helper {
     CorkRouterV1 public router;
     MockAggregator public mockAggregator;
+    address caller;
 
     function initTests() internal {
-        mockAggregator = new MockAggregator();
-        router = new CorkRouterV1(address(moduleCore), address(flashSwapRouter), address(hook));
 
         vm.startPrank(DEFAULT_ADDRESS);
         deployModuleCore();
         vm.stopPrank();
+        
+        mockAggregator = new MockAggregator();
+        router = new CorkRouterV1(address(moduleCore), address(flashSwapRouter), address(hook));        
     }
 
-    function bootstrapAggregatorLiquidity(DummyWETH token) internal {
+    function _recordCallers() internal {
+        (, caller,) = vm.readCallers();
+    }
+
+    function _backToCaller() internal {
+        vm.startPrank(caller);
+    }
+
+    modifier callerCheckPoint() {
+        _recordCallers();
+        vm.stopPrank();
+        _;
+        _backToCaller();
+    }
+
+    function bootstrapAggregatorLiquidity(DummyWETH token) internal callerCheckPoint {
         address aggregator = address(mockAggregator);
+
         vm.deal(aggregator, type(uint128).max);
 
         vm.startPrank(aggregator);
@@ -30,12 +48,15 @@ contract TestBase is Helper {
         vm.stopPrank();
     }
 
-    function bootstrapSelfLiquidity(DummyWETH token) internal {
-        (, address caller,) = vm.readCallers();
-
+    function bootstrapSelfLiquidity(DummyWETH token) internal callerCheckPoint {
         vm.deal(caller, type(uint128).max);
         vm.prank(caller);
+
         token.deposit{value: type(uint128).max}();
+    }
+
+    function allowFullAllowance(address token, address to) internal {
+        IERC20(token).approve(to, type(uint128).max);
     }
 
     function defaultSwapParams(address tokenIn, address tokenOut, uint256 amountIn)
@@ -48,12 +69,5 @@ contract TestBase is Helper {
         params.amountIn = amountIn;
         params.extRouter = address(mockAggregator);
         params.extRouterData = "";
-    }
-
-    function allowFullAccess(address token, address tp) internal {
-        (, address caller,) = vm.readCallers();
-        vm.startPrank(caller);
-        IERC20(token).approve(tp, type(uint128).max);
-        vm.stopPrank();
     }
 }
