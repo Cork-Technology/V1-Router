@@ -17,7 +17,7 @@ contract Repurchase is TestBase {
 
         randomToken = new DummyWETH();
 
-        (ra,pa,) = initializeAndIssueNewDs(10 days);
+        (ra, pa,) = initializeAndIssueNewDs(10 days);
 
         bootstrapAggregatorLiquidity(ra);
         bootstrapAggregatorLiquidity(randomToken);
@@ -34,29 +34,23 @@ contract Repurchase is TestBase {
     function testRepurchase() external {
         // for simplicity sake
         corkConfig.updateRepurchaseFeeRate(defaultCurrencyId, 0);
-            
-            uint256 amount = 1e18;
 
-            router.depositPsm(defaultSwapParams(address(randomToken), address(ra), amount), defaultCurrencyId);
-            
-            (,address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
+        uint256 amount = 1e18;
+
+        router.depositPsm(defaultSwapParams(address(randomToken), address(ra), amount), defaultCurrencyId);
+
+        (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
         allowFullAllowance(ds, address(moduleCore));
-            moduleCore.redeemRaWithDsPa(defaultCurrencyId, 1, amount);
-            
-            uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
-            uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
-        (
-            ,
-            uint256 receivedPa,
-            uint256 receivedDs,
-            ,
-            ,
-            
-        )=router.repurchase(defaultSwapParams(address(randomToken), address(ra), amount), defaultCurrencyId, amount);
-            uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
-            uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
+        moduleCore.redeemRaWithDsPa(defaultCurrencyId, 1, amount);
 
-            assertEq(amount, dsBalanceAfter - dsBalanceBefore);
-            assertEq(amount, paBalanceAfter - paBalanceBefore);
+        uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
+        uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
+        (, uint256 receivedPa, uint256 receivedDs,,,) =
+            router.repurchase(defaultSwapParams(address(randomToken), address(ra), amount), defaultCurrencyId, amount);
+        uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
+        uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
+
+        assertEq(amount, dsBalanceAfter - dsBalanceBefore);
+        assertEq(amount, paBalanceAfter - paBalanceBefore);
     }
-   }
+}

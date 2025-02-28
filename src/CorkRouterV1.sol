@@ -52,10 +52,10 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
         _increaseAllowanceForProtocol(params.tokenOut, amount);
 
         (dsId, receivedPa, receivedDs, feePercentage, fee, exchangeRates) = _psm().repurchase(id, amount);
-        
-        (,address ds)=__getCtDs(id);
-        (,address pa) = __getRaPair(id);
-        
+
+        (, address ds) = __getCtDs(id);
+        (, address pa) = __getRaPair(id);
+
         _transferToUser(ds, _contractBalance(ds));
         _transferToUser(pa, _contractBalance(pa));
     }
