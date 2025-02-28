@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
 import {IPSMcore} from "Depeg-swap/contracts/interfaces/IPSMcore.sol";
@@ -12,7 +13,7 @@ import {ICorkSwapAggregator} from "./interfaces/ICorkSwapAggregator.sol";
 
 abstract contract AbtractAction is State {
     function _transferFromUser(address token, uint256 amount) internal {
-        TransferHelper.transferFrom(token, msg.sender, address(this), amount);
+        TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
@@ -20,11 +21,11 @@ abstract contract AbtractAction is State {
     }
 
     function _increaseAllowance(address token, address to, uint256 amount) internal {
-        TransferHelper.approve(token, to, amount);
+        TransferHelper.safeApprove(token, to, amount);
     }
 
     function _transferToUser(address token, uint256 amount) internal {
-        TransferHelper.transfer(token, msg.sender, amount);
+        TransferHelper.safeTransfer(token, msg.sender, amount);
     }
 
     function _contractBalance(address token) internal view returns (uint256) {
