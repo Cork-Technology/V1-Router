@@ -11,23 +11,24 @@ contract CorkRouterV1 is State, AbtractAction {
 
     constructor(address __core, address __flashSwapRouter, address __hook) State(__core, __flashSwapRouter, __hook) {}
 
-    function depositPsm(ICorkSwapAggregator.SwapParams calldata params, Id id) external returns (uint256 amount) {
-        uint256 amount = _swap(params);
+    function depositPsm(ICorkSwapAggregator.SwapParams calldata params, Id id) external returns (uint256 received) {
+        uint256 zapAmount = _swap(params);
 
-        _increaseAllowanceForProtocol(params.tokenOut, amount);
+        _increaseAllowanceForProtocol(params.tokenOut, zapAmount);
 
-        (amount,) = _psm().depositPsm(id, amount);
+        (received,) = _psm().depositPsm(id, zapAmount);
 
         _transferAllCtDsToUser(id);
     }
 
     function depositLv(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
         external
+        returns (uint256 received)
     {
         uint256 amount = _swap(params);
 
         _increaseAllowanceForProtocol(params.tokenOut, amount);
-        _vault().depositLv(id, amount, raTolerance, ctTolerance);
+        received = _vault().depositLv(id, amount, raTolerance, ctTolerance);
 
         _transferAllLvToUser(id);
     }
