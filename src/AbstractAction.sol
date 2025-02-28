@@ -39,6 +39,10 @@ abstract contract AbtractAction is State {
         TransferHelper.safeTransfer(token, msg.sender, amount);
     }
 
+    function _transfer(address token, address to, uint256 amount) internal {
+        TransferHelper.safeTransfer(token,to,amount);
+    }
+
     function _contractBalance(address token) internal view returns (uint256) {
         return IERC20(token).balanceOf(address(this));
     }
