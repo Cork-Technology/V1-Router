@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {IPSMcore} from "Depeg-swap/contracts/interfaces/IPSMcore.sol";
-import {IVault} from "Depeg-swap/contracts/interfaces/IVault.sol";
 import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {IPoolManager} from "v4-periphery/lib/v4-core/src/interfaces/IPoolManager.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
-
-import {ICorkHook} from "Cork-Hook/interfaces/ICorkHook.sol";
 import {PoolKey} from "v4-periphery/lib/v4-core/src/types/PoolKey.sol";
 import {State} from "./State.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
@@ -40,7 +36,7 @@ abstract contract AbtractAction is State {
     }
 
     function _transfer(address token, address to, uint256 amount) internal {
-        TransferHelper.safeTransfer(token,to,amount);
+        TransferHelper.safeTransfer(token, to, amount);
     }
 
     function _contractBalance(address token) internal view returns (uint256) {
@@ -174,6 +170,7 @@ abstract contract AbtractAction is State {
 
             // unlock and init swap
             // will just transfer the ct to user if it fails to swap
+            // solhint-disable-next-line no-empty-blocks
             try manager.unlock(raw) {}
             catch {
                 _transfer(ct, user, _contractBalance(ct));
@@ -184,7 +181,7 @@ abstract contract AbtractAction is State {
 
             // we essentially just give back the token to user if there's if for some reason
             // we fail to sell the DS
-            // solhin-disable-next-line
+            // solhint-disable-next-line no-empty-blocks
             try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin) returns (uint256) {}
             catch {
                 _transfer(ds, user, _contractBalance(ct));
