@@ -35,4 +35,28 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
     function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
         _handleLvRedeem(tokens, routerData);
     }
+
+    function repurchase(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 amount)
+        external
+        returns (
+            uint256 dsId,
+            uint256 receivedPa,
+            uint256 receivedDs,
+            uint256 feePercentage,
+            uint256 fee,
+            uint256 exchangeRates
+        )
+    {
+        amount = _swap(params);
+
+        _increaseAllowanceForProtocol(params.tokenOut, amount);
+
+        (dsId, receivedPa, receivedDs, feePercentage, fee, exchangeRates) = _psm().repurchase(id, amount);
+        
+        (,address ds)=__getCtDs(id);
+        (,address pa) = __getRaPair(id);
+        
+        _transferToUser(ds, _contractBalance(ds));
+        _transferToUser(pa, _contractBalance(pa));
+    }
 }
