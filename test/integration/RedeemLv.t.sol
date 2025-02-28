@@ -33,6 +33,7 @@ contract RedeemLv is TestBase {
 
         allowFullAllowance(address(randomToken), address(router));
         allowFullAllowance(address(ra), address(router));
+        allowFullAllowance(address(ra), address(flashSwapRouter));
         allowFullAllowance(address(pa), address(router));
     }
 
@@ -43,6 +44,9 @@ contract RedeemLv is TestBase {
 
         Id id = defaultCurrencyId;
 
+        // disable ct split so we get accurate result
+        corkConfig.updateLvStrategyCtSplitPercentage(id, 0);
+
         // deposit some lv and psm
         router.depositLv(params, id, 0, 0);
         router.depositPsm(params, id);
@@ -50,7 +54,7 @@ contract RedeemLv is TestBase {
         params = defaultSwapParams(address(pa), address(ra), amount);
 
         // redeem some ds + pa so that we got some pa
-        uint256 redeemAmount = 5e17;
+        uint256 redeemAmount = 1e18;
 
         (, address ds) = moduleCore.swapAsset(id, 1);
 
@@ -73,14 +77,109 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.RouterParams memory routerData =
-            ICorkSwapAggregator.RouterParams(id, 0, defaultSwapParams(address(pa), address(ra), result.paReceived));
+        ICorkSwapAggregator.RouterParams memory routerData = ICorkSwapAggregator.RouterParams(
+            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 333444370419713515), true
+        );
 
         vm.warp(block.timestamp + 3 days);
 
+        uint256 raBalanceBefore = ra.balanceOf(DEFAULT_ADDRESS);
+
         withdrawalContract.claimRouted(result.withdrawalId, address(router), abi.encode(routerData));
-        // TODO add more detailed assertments
+
+        uint256 raBalanceAfter = ra.balanceOf(DEFAULT_ADDRESS);
+
+        // because of the fee
+        assertApproxEqAbs(1e18, raBalanceAfter - raBalanceBefore, 1e17);
     }
 
-    // TODO add test that also test while active
+    function testRedeemLvActiveSellDs() external {
+        uint256 amount = 1e18;
+
+        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+
+        Id id = defaultCurrencyId;
+
+        // disable ct split so we get accurate result
+        corkConfig.updateLvStrategyCtSplitPercentage(id, 0);
+
+        // deposit some lv and psm
+        router.depositLv(params, id, 0, 0);
+
+        params = defaultSwapParams(address(pa), address(ra), amount);
+
+        // redeem lv with router
+        address lv = moduleCore.lvAsset(id);
+        allowFullAllowance(lv, address(moduleCore));
+
+        IVault.RedeemEarlyParams memory redeemEarlyParams =
+            IVault.RedeemEarlyParams(id, amount, 0, block.timestamp, 0, 0, 0);
+
+        IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
+
+        ICorkSwapAggregator.RouterParams memory routerData = ICorkSwapAggregator.RouterParams(
+            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0), true
+        );
+
+        vm.warp(block.timestamp + 3 days);
+
+        uint256 raBalanceBefore = ra.balanceOf(DEFAULT_ADDRESS);
+
+        withdrawalContract.claimRouted(result.withdrawalId, address(router), abi.encode(routerData));
+
+        uint256 raBalanceAfter = ra.balanceOf(DEFAULT_ADDRESS);
+
+        // because of the amm liquidity lock we will get slight less
+        assertApproxEqAbs(1e18, raBalanceAfter - raBalanceBefore, 1e5);
+    }
+
+    function testRedeemLvActiveSellCt() external {
+        uint256 amount = 10e18;
+
+        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+
+        Id id = defaultCurrencyId;
+
+        // disable ct split so we get accurate result
+        corkConfig.updateLvStrategyCtSplitPercentage(id, 0);
+
+        // deposit some lv and psm
+        router.depositLv(params, id, 0, 0);
+
+        // buy a little bit of ds so that we can test selling ct
+        flashSwapRouter.swapRaforDs(id, 1, 0.0001 ether, 0, defaultBuyApproxParams(), defaultOffchainGuessParams());
+
+        params = defaultSwapParams(address(pa), address(ra), amount);
+
+        // redeem lv with router
+        address lv = moduleCore.lvAsset(id);
+        allowFullAllowance(lv, address(moduleCore));
+
+        IVault.RedeemEarlyParams memory redeemEarlyParams =
+            IVault.RedeemEarlyParams(id, 1e18, 0, block.timestamp, 0, 0, 0);
+
+        IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
+
+        ICorkSwapAggregator.RouterParams memory routerData = ICorkSwapAggregator.RouterParams(
+            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0), true
+        );
+
+        vm.warp(block.timestamp + 3 days);
+
+        uint256 raBalanceBefore = ra.balanceOf(DEFAULT_ADDRESS);
+
+        withdrawalContract.claimRouted(result.withdrawalId, address(router), abi.encode(routerData));
+
+        uint256 raBalanceAfter = ra.balanceOf(DEFAULT_ADDRESS);
+
+        // because of the amm liquidity lock we will get slight less and the price of ct is less because we bought DS
+        assertApproxEqAbs(1e18, raBalanceAfter - raBalanceBefore, 0.0001 ether);
+
+        (address ct, address ds) = moduleCore.swapAsset(id, 1);
+
+        _verifyNoFunds(address(ra), address(router));
+        _verifyNoFunds(address(pa), address(router));
+        _verifyNoFunds(address(ct), address(router));
+        _verifyNoFunds(address(ds), address(router));
+    }
 }

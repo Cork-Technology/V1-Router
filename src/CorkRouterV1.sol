@@ -31,7 +31,7 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
         _transferAllLvToUser(id);
     }
 
-    function route(address receiver, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
-        _handleLvRedeem(tokens, routerData, receiver);
+    function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
+        _handleLvRedeem(tokens, routerData);
     }
 }
