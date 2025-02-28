@@ -14,13 +14,12 @@ contract TestBase is Helper {
     address caller;
 
     function initTests() internal {
-
         vm.startPrank(DEFAULT_ADDRESS);
         deployModuleCore();
         vm.stopPrank();
-        
+
         mockAggregator = new MockAggregator();
-        router = new CorkRouterV1(address(moduleCore), address(flashSwapRouter), address(hook));        
+        router = new CorkRouterV1(address(moduleCore), address(flashSwapRouter), address(hook));
     }
 
     function _recordCallers() internal {
