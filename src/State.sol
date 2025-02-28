@@ -3,9 +3,7 @@ pragma solidity ^0.8.26;
 import {IPSMcore} from "Depeg-swap/contracts/interfaces/IPSMcore.sol";
 import {IVault} from "Depeg-swap/contracts/interfaces/IVault.sol";
 import {ICorkHook} from "Cork-Hook/interfaces/ICorkHook.sol";
-import {MetaAggregationRouterV2} from "./interfaces/IMetaAggregationRouter.sol";
-
-import {TransferHelper} from "./lib/TransferHelper.sol";
+import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
 abstract contract State {
     address public immutable CORE;
@@ -28,5 +26,9 @@ abstract contract State {
 
     function _hook() internal view returns (ICorkHook) {
         return ICorkHook(HOOK);
+    }
+
+    function _flashSwapRouter() internal view returns (IDsFlashSwapCore) {
+        return IDsFlashSwapCore(FLASH_SWAP_ROUTER);
     }
 }
