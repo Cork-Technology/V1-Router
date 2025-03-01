@@ -25,6 +25,7 @@ contract Deposit is TestBase {
         bootstrapSelfLiquidity(randomToken);
 
         allowFullAllowance(address(randomToken), address(router));
+        allowFullAllowance(address(ra), address(router));
     }
 
     function testDepositPsm() public {
@@ -52,6 +53,56 @@ contract Deposit is TestBase {
         uint256 amount = 1e18;
 
         ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+
+        Id id = defaultCurrencyId;
+
+        uint256 received = router.depositLv(params, id, 0, 0);
+
+        // verify that router has no funds
+        assertEq(ra.balanceOf(address(router)), 0);
+        assertEq(IERC20(randomToken).balanceOf(address(router)), 0);
+
+        // verify that we receive lv`
+        address lv = moduleCore.lvAsset(id);
+
+        assertEq(IERC20(lv).balanceOf(DEFAULT_ADDRESS), received);
+    }
+
+    function testFuzzDepositPsm(bool enableAggregator) public {
+        uint256 amount = 1e18;
+
+        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+        params.enableAggregator = enableAggregator;
+
+        if (!enableAggregator) {
+            params.tokenIn = address(ra);
+        }
+
+        Id id = defaultCurrencyId;
+
+        uint256 received = router.depositPsm(params, id);
+
+        // verify that router has no funds
+        assertEq(ra.balanceOf(address(router)), 0);
+
+        (address ct, address ds) = moduleCore.swapAsset(id, 1);
+        assertEq(IERC20(ct).balanceOf(address(router)), 0);
+        assertEq(IERC20(ds).balanceOf(address(router)), 0);
+
+        // verify that we receive ct and ds
+        assertEq(IERC20(ct).balanceOf(DEFAULT_ADDRESS), received);
+        assertEq(IERC20(ds).balanceOf(DEFAULT_ADDRESS), received);
+    }
+
+    function testFuzzDepositLv(bool enableAggregator) public {
+        uint256 amount = 1e18;
+
+        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+        params.enableAggregator = enableAggregator;
+
+        if (!enableAggregator) {
+            params.tokenIn = address(ra);
+        }
 
         Id id = defaultCurrencyId;
 

@@ -68,6 +68,7 @@ contract TestBase is Helper {
         params.amountIn = amountIn;
         params.extRouter = address(mockAggregator);
         params.extRouterData = "";
+        params.enableAggregator = true;
     }
 
     function _verifyNoFunds(address token, address target) internal {

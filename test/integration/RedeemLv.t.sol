@@ -77,8 +77,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.RouterParams memory routerData = ICorkSwapAggregator.RouterParams(
-            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 333444370419713515), true
+        ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
+            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 333444370419713515)
         );
 
         vm.warp(block.timestamp + 3 days);
@@ -117,9 +117,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.RouterParams memory routerData = ICorkSwapAggregator.RouterParams(
-            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0), true
-        );
+        ICorkSwapAggregator.LvRedeemParams memory routerData =
+            ICorkSwapAggregator.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0));
 
         vm.warp(block.timestamp + 3 days);
 
@@ -160,9 +159,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.RouterParams memory routerData = ICorkSwapAggregator.RouterParams(
-            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0), true
-        );
+        ICorkSwapAggregator.LvRedeemParams memory routerData =
+            ICorkSwapAggregator.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0));
 
         vm.warp(block.timestamp + 3 days);
 

@@ -73,14 +73,22 @@ abstract contract AbtractAction is State {
         (ct, ds) = core.swapAsset(id, dsId);
     }
 
-    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256) {
+    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256 amount, address token) {
         _transferFromUser(params.tokenIn, params.amountIn);
-        return _swapNoTransfer(params);
+        (amount, token) = _swapNoTransfer(params);
     }
 
-    function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256) {
-        _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
-        return ICorkSwapAggregator(params.extRouter).swap(params);
+    function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params)
+        internal
+        returns (uint256 amount, address token)
+    {
+        if (params.enableAggregator) {
+            _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
+            return (ICorkSwapAggregator(params.extRouter).swap(params), params.tokenOut);
+        } else {
+            amount = params.amountIn;
+            token = params.tokenIn;
+        }
     }
 
     function __findCtDsFromTokens(IWithdrawalRouter.Tokens[] calldata tokens, Id id)
@@ -111,21 +119,22 @@ abstract contract AbtractAction is State {
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
-        ICorkSwapAggregator.RouterParams memory routerParams = abi.decode(params, (ICorkSwapAggregator.RouterParams));
+        ICorkSwapAggregator.LvRedeemParams memory LvRedeemParams =
+            abi.decode(params, (ICorkSwapAggregator.LvRedeemParams));
 
-        (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, routerParams.id);
-        (address ra, address pa) = __getRaPair(routerParams.id);
+        (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, LvRedeemParams.id);
+        (address ra, address pa) = __getRaPair(LvRedeemParams.id);
 
         if (Asset(ct).isExpired()) {
-            _handleLvRedeemDsExpired(routerParams.id, ct, ds, dsId);
+            _handleLvRedeemDsExpired(LvRedeemParams.id, ct, ds, dsId);
         } else {
-            _handleLvRedeemDsActive(routerParams.id, ct, ds, dsId, routerParams.dsMinOut, routerParams.receiver);
+            _handleLvRedeemDsActive(LvRedeemParams.id, ct, ds, dsId, LvRedeemParams.dsMinOut, LvRedeemParams.receiver);
         }
 
-        _swapNoTransfer(routerParams.paSwapAggregatorData);
+        _swapNoTransfer(LvRedeemParams.paSwapAggregatorData);
 
-        _transfer(ra, routerParams.receiver, _contractBalance(ra));
-        _transfer(pa, routerParams.receiver, _contractBalance(pa));
+        _transfer(ra, LvRedeemParams.receiver, _contractBalance(ra));
+        _transfer(pa, LvRedeemParams.receiver, _contractBalance(pa));
     }
 
     function _handleLvRedeemDsActive(Id id, address ct, address ds, uint256 dsId, uint256 amountOutMin, address user)
