@@ -5,7 +5,8 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 
 interface ICorkSwapAggregator {
     struct SwapParams {
-        // the inout token address
+        // the input token address, if enableAggregator is false
+        // you should set this as the target RA/PA
         address tokenIn;
         // the output token address, won't be used if enable aggregator is set to false
         address tokenOut;
