@@ -11,11 +11,12 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
     constructor(address __core, address __flashSwapRouter, address __hook) State(__core, __flashSwapRouter, __hook) {}
 
     function depositPsm(ICorkSwapAggregator.SwapParams calldata params, Id id) external returns (uint256 received) {
-        uint256 zapAmount = _swap(params);
+        address token;
+        (received, token) = _swap(params);
 
-        _increaseAllowanceForProtocol(params.tokenOut, zapAmount);
+        _increaseAllowanceForProtocol(token, received);
 
-        (received,) = _psm().depositPsm(id, zapAmount);
+        (received,) = _psm().depositPsm(id, received);
 
         _transferAllCtDsToUser(id);
     }
@@ -24,10 +25,11 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
         external
         returns (uint256 received)
     {
-        uint256 amount = _swap(params);
+        address token;
+        (received, token) = _swap(params);
 
-        _increaseAllowanceForProtocol(params.tokenOut, amount);
-        received = _vault().depositLv(id, amount, raTolerance, ctTolerance);
+        _increaseAllowanceForProtocol(token, received);
+        received = _vault().depositLv(id, received, raTolerance, ctTolerance);
 
         _transferAllLvToUser(id);
     }
@@ -47,9 +49,10 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
             uint256 exchangeRates
         )
     {
-        amount = _swap(params);
+        address token;
+        (amount, token) = _swap(params);
 
-        _increaseAllowanceForProtocol(params.tokenOut, amount);
+        _increaseAllowanceForProtocol(token, amount);
 
         (dsId, receivedPa, receivedDs, feePercentage, fee, exchangeRates) = _psm().repurchase(id, amount);
 

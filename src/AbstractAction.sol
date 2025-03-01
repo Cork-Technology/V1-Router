@@ -73,14 +73,22 @@ abstract contract AbtractAction is State {
         (ct, ds) = core.swapAsset(id, dsId);
     }
 
-    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256) {
+    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256 amount, address token) {
         _transferFromUser(params.tokenIn, params.amountIn);
-        return _swapNoTransfer(params);
+        (amount, token) = _swapNoTransfer(params);
     }
 
-    function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256) {
-        _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
-        return ICorkSwapAggregator(params.extRouter).swap(params);
+    function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params)
+        internal
+        returns (uint256 amount, address token)
+    {
+        if (params.enableAggregator) {
+            _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
+            return (ICorkSwapAggregator(params.extRouter).swap(params), params.tokenOut);
+        } else {
+            amount = params.amountIn;
+            token = params.tokenIn;
+        }
     }
 
     function __findCtDsFromTokens(IWithdrawalRouter.Tokens[] calldata tokens, Id id)
