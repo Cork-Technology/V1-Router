@@ -71,8 +71,12 @@ contract TestBase is Helper {
         params.enableAggregator = true;
     }
 
-    function _verifyNoFunds(address token, address target) internal {
-        uint256 balance = IERC20(token).balanceOf(target);
+    function _verifyNoFunds(IERC20 token, address target) internal {
+        uint256 balance = token.balanceOf(target);
         assertEq(balance, 0);
+    }
+
+    function _verifyNoFunds(address token, address target) internal {
+        _verifyNoFunds(IERC20(token), target);
     }
 }

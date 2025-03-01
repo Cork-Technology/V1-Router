@@ -27,6 +27,10 @@ abstract contract AbtractAction is State {
         _increaseAllowance(token, CORE, amount);
     }
 
+    function _increaseAllowanceForRouter(address token, uint256 amount) internal {
+        _increaseAllowance(token, FLASH_SWAP_ROUTER, amount);
+    }
+
     function _increaseAllowance(address token, address to, uint256 amount) internal {
         TransferHelper.safeApprove(token, to, amount);
     }

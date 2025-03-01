@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
+import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
 interface ICorkSwapAggregator {
     struct SwapParams {
@@ -32,6 +33,23 @@ interface ICorkSwapAggregator {
         // aggregator swap data for pa token -> RA
         // the amount in should include the amount of idle PA and the PA we got from redeeming CT(if the CT is expired)
         ICorkSwapAggregator.SwapParams paSwapAggregatorData;
+    }
+
+    struct SwapRaForDsParams {
+        Id id;
+        uint256 dsId;
+        uint256 amountOutMin;
+        IDsFlashSwapCore.BuyAprroxParams approxParams;
+        IDsFlashSwapCore.OffchainGuess offchainGuess;
+        ICorkSwapAggregator.SwapParams inputTokenSwapParams;
+    }
+
+    struct SwapDsForRaParams {
+        Id id;
+        uint256 dsId;
+        uint256 amount;
+        uint256 raAmountOutMin;
+        ICorkSwapAggregator.SwapParams raSwapParams;
     }
 
     function swap(SwapParams calldata params) external returns (uint256 amountOut);
