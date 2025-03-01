@@ -27,6 +27,8 @@ contract Repurchase is TestBase {
         bootstrapSelfLiquidity(randomToken);
 
         allowFullAllowance(address(randomToken), address(router));
+        allowFullAllowance(address(ra), address(router));
+        allowFullAllowance(address(pa), address(router));
         allowFullAllowance(address(ra), address(moduleCore));
         allowFullAllowance(address(pa), address(moduleCore));
     }
@@ -40,13 +42,47 @@ contract Repurchase is TestBase {
         router.depositPsm(defaultSwapParams(address(randomToken), address(ra), amount), defaultCurrencyId);
 
         (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
+        
         allowFullAllowance(ds, address(moduleCore));
         moduleCore.redeemRaWithDsPa(defaultCurrencyId, 1, amount);
 
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
+        
         (, uint256 receivedPa, uint256 receivedDs,,,) =
             router.repurchase(defaultSwapParams(address(randomToken), address(ra), amount), defaultCurrencyId, amount);
+        
+        uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
+        uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
+
+        assertEq(amount, dsBalanceAfter - dsBalanceBefore);
+        assertEq(amount, paBalanceAfter - paBalanceBefore);
+    }
+    
+    function testFuzzRepurchase(bool enableAggregator) external {
+        // for simplicity sake
+        corkConfig.updateRepurchaseFeeRate(defaultCurrencyId, 0);
+
+        uint256 amount = 1e18;
+
+        address token = enableAggregator ? address(randomToken) : address(ra);
+
+        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(token,address(ra),amount);
+        params.enableAggregator = enableAggregator;
+
+        router.depositPsm(params, defaultCurrencyId);
+
+        (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
+        
+        allowFullAllowance(ds, address(moduleCore));
+        moduleCore.redeemRaWithDsPa(defaultCurrencyId, 1, amount);
+
+        uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
+        uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
+        
+        (, uint256 receivedPa, uint256 receivedDs,,,) =
+            router.repurchase(params, defaultCurrencyId, amount);
+        
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
 
