@@ -103,7 +103,6 @@ contract Deposit is TestBase {
         if (!enableAggregator) {
             params.tokenIn = address(ra);
         }
-        
 
         Id id = defaultCurrencyId;
 
@@ -118,5 +117,4 @@ contract Deposit is TestBase {
 
         assertEq(IERC20(lv).balanceOf(DEFAULT_ADDRESS), received);
     }
-
 }

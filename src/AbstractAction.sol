@@ -119,7 +119,8 @@ abstract contract AbtractAction is State {
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
-        ICorkSwapAggregator.LvRedeemParams memory LvRedeemParams = abi.decode(params, (ICorkSwapAggregator.LvRedeemParams));
+        ICorkSwapAggregator.LvRedeemParams memory LvRedeemParams =
+            abi.decode(params, (ICorkSwapAggregator.LvRedeemParams));
 
         (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, LvRedeemParams.id);
         (address ra, address pa) = __getRaPair(LvRedeemParams.id);
