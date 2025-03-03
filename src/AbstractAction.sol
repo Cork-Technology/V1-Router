@@ -164,28 +164,11 @@ abstract contract AbtractAction is State {
 
         // sell remaining CT or DS
         if (isCt) {
-            _increaseAllowance(ct, HOOK, diff);
+            bool success = _handleSwap(ct, ra, true, diff);
 
-            IPoolManager manager = IPoolManager(_hook().getPoolManager());
-            bytes memory raw;
-            {
-                PoolKey memory key = _hook().getPoolKey(ra, ct);
-                // we want to swap ct for ra
-                // so if ra is less than ct that means
-                // ra is token0 and ct is token1 -> false
-                // else -> true
-                bool zeroForOne = ra < ct ? false : true;
-
-                IPoolManager.SwapParams memory swapParams =
-                    IPoolManager.SwapParams(zeroForOne, -int256(diff), Constants.SQRT_PRICE_1_1);
-                raw = abi.encode(key, swapParams, ct, ra);
-            }
-
-            // unlock and init swap
             // will just transfer the ct to user if it fails to swap
-            // solhint-disable-next-line no-empty-blocks
-            try manager.unlock(raw) {}
-            catch {
+            if (!success) {
+                revert("A");
                 _transfer(ct, user, _contractBalance(ct));
             }
         } else {
@@ -202,7 +185,34 @@ abstract contract AbtractAction is State {
         }
     }
 
-    function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
+    function _handleSwap(address input, address output, bool exactIn, uint256 amount) internal returns (bool success) {
+        IPoolManager manager = IPoolManager(_hook().getPoolManager());
+        PoolKey memory key = _hook().getPoolKey(input, output);
+
+        // we want to swap arbitrary input to output token
+        // so if input is less than output that means
+        // input is token0 and output is token1 -> true
+        // else means input is token1 and output is token0 -> false
+        bool zeroForOne = input < output ? true : false;
+
+        int256 swapAmount = exactIn ? -int256(amount) : int256(amount);
+
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams(zeroForOne, swapAmount, Constants.SQRT_PRICE_1_1);
+
+        bytes memory raw = abi.encode(key, swapParams, input, output);
+
+        // increase allowance for hook
+        _increaseAllowance(input, HOOK, amount);
+
+        try manager.unlock(raw) {
+            success = true;
+        } catch {
+            success = false;
+        }
+    }
+
+    function _handleSwapCallback(bytes calldata raw) internal {
         address manager = _hook().getPoolManager();
 
         if (msg.sender != manager) {
@@ -210,14 +220,14 @@ abstract contract AbtractAction is State {
             revert("only manager");
         }
 
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _ct, address _ra) =
-            abi.decode(rawData, (PoolKey, IPoolManager.SwapParams, address, address));
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));
 
-        Currency ct = Currency.wrap(_ct);
-        Currency ra = Currency.wrap(_ra);
+        Currency input = Currency.wrap(_input);
+        Currency output = Currency.wrap(_output);
 
         uint256 settleAmount = uint256(-params.amountSpecified);
 
@@ -228,7 +238,11 @@ abstract contract AbtractAction is State {
             ? uint256(uint128(BalanceDeltaLibrary.amount1(delta)))
             : uint256(uint128(BalanceDeltaLibrary.amount0(delta)));
 
-        CurrencySettler.settle(ct, IPoolManager(manager), address(this), settleAmount, false);
-        CurrencySettler.take(ra, IPoolManager(manager), address(this), takeAmount, false);
+        CurrencySettler.settle(input, IPoolManager(manager), address(this), settleAmount, false);
+        CurrencySettler.take(output, IPoolManager(manager), address(this), takeAmount, false);
+    }
+
+    function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
+        _handleSwapCallback(rawData);
     }
 }
