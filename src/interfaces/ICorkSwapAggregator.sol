@@ -5,16 +5,29 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
 interface ICorkSwapAggregator {
+
+    // TODO : make checks for checking token in and token out is the same when aggregator is disabled
     struct SwapParams {
         // the input token address, if enableAggregator is false
         // you should set this as the target RA/PA
         address tokenIn;
-        // the output token address, won't be used if enable aggregator is set to false
+        // the output token address, 
+        // user must set the same token address as token in if aggregator is disabled
         address tokenOut;
         // the input token amount
+        // set this to 0 when doing exact out swaps
         uint256 amountIn;
-        // the output token slippage protection, won't be used if enable aggregator is set to false
+        // the output token target amount
+        // set this to 0 when doing exact in swaps
+        uint256 amountOut;
+        // the output token slippage protection
+        // the user must set the same value as amountIn if the aggregator is disabled
+        // set this to 0 when doing exact out swaps
         uint256 amountOutMin;
+        // the input token slippage protection when doing exact in swaps
+        // the user must set the same value as amountIn if the aggregator is disabled
+        // set this to 0 when doing exact in swaps
+        uint256 amountMaxIn;
         // external swap aggregator, won't be used if enableAggregator is set to false
         address extRouter;
         // external swap aggregator calldata, won't be used if enableAggregator is set to false

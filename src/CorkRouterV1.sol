@@ -98,4 +98,63 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
 
         _transferToUser(token, _contractBalance(token));
     }
+
+    // TODO : double check this shit
+    function swapRaForCtExactIn(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 amountOutMin)
+        external
+        returns (uint256 amountOut)
+    {
+        (uint256 amount,) = _swap(params);
+
+        address ct;
+
+        (amountOut, ct) = _swap(id, true, true, amount);
+
+        // TODO : move to custom errors
+        if (amountOut < amountOutMin) revert("Slippage");
+
+        _transferToUser(ct, amountOut);
+    }
+
+    // we don't have an explicit slippage protection(max amount in) since the amount out min on the swap params
+    // automatically become the max input tokens. If it needs more than that the swap will naturally fails
+    function swapRaForCtExactOut(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 amountOut)
+        external
+        returns (uint256 used, uint256 remaining)
+    {
+        // we expect ra to come out from this
+        (address initial, address ra) = _swap(params);
+
+        address ct;
+        (amountOut, ct) = _swap(id, true, false, amountOut);
+
+        // transfer all ct
+        _transferToUser(ct, amountOut);
+
+        // take the diff and refund unused RA
+        used = initial - _contractBalance(ra);
+        remaining = _contractBalance(ra);
+
+        assert(used + remaining == initial);
+
+        // we use token out here since the token out is expected to be the target RA
+        _transferToUser(ra, remaining);
+    }
+
+    function swapCtForRaExactIn(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 amountOutMin)
+        external
+        returns (uint256 amountOut)
+    {
+        // address ra;
+        // (amountOut, ra) = _swap(id, true, true, amount);
+
+        // if (amountOut < amountOutMin) revert("Slippage");
+
+        // address tokenOut;
+        // (amountOut, tokenOut) = _swap(params);
+
+        // _transferToUser(tokenOut, amountOut);
+    }
+
+    function swapCtForRaExactOut() external {}
 }

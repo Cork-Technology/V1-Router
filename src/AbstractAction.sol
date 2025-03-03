@@ -77,11 +77,6 @@ abstract contract AbtractAction is State {
         (ct, ds) = core.swapAsset(id, dsId);
     }
 
-    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256 amount, address token) {
-        _transferFromUser(params.tokenIn, params.amountIn);
-        (amount, token) = _swapNoTransfer(params);
-    }
-
     function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params)
         internal
         returns (uint256 amount, address token)
@@ -164,11 +159,10 @@ abstract contract AbtractAction is State {
 
         // sell remaining CT or DS
         if (isCt) {
-            bool success = _handleSwap(ct, ra, true, diff);
+            bool success = _handleSwap(ct, ra, true, diff, false);
 
             // will just transfer the ct to user if it fails to swap
             if (!success) {
-                revert("A");
                 _transfer(ct, user, _contractBalance(ct));
             }
         } else {
@@ -185,7 +179,35 @@ abstract contract AbtractAction is State {
         }
     }
 
-    function _handleSwap(address input, address output, bool exactIn, uint256 amount) internal returns (bool success) {
+    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256 amount, address token) {
+        _transferFromUser(params.tokenIn, params.amountIn);
+        (amount, token) = _swapNoTransfer(params);
+    }
+
+    // handle ct/ra swap without intermediate token
+    function _swap(
+        Id id,
+        bool raForCt,
+        bool exactIn,
+        uint256 amount
+    ) internal returns (uint256 amountOut, address output) {
+        address input;
+        {
+            (address ra,) = __getRaPair(id);
+            (address ct,) = __getCtDs(id);
+
+            (input, output) = raForCt ? (ra, ct) : (ct, ra);
+        }
+
+        _handleSwap(input, output, exactIn, amount, true);
+
+        amountOut = _contractBalance(output);
+    }
+
+    function _handleSwap(address input, address output, bool exactIn, uint256 amount, bool allowExplicitRevert)
+        internal
+        returns (bool success)
+    {
         IPoolManager manager = IPoolManager(_hook().getPoolManager());
         PoolKey memory key = _hook().getPoolKey(input, output);
 
@@ -204,6 +226,11 @@ abstract contract AbtractAction is State {
 
         // increase allowance for hook
         _increaseAllowance(input, HOOK, amount);
+
+        if (allowExplicitRevert) {
+            manager.unlock(raw);
+            return true;
+        }
 
         try manager.unlock(raw) {
             success = true;
