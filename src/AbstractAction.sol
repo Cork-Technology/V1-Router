@@ -17,8 +17,9 @@ import {Constants} from "Cork-Hook/Constants.sol";
 import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
+import {IAbstractAction} from "./interfaces/IAbstractAction.sol";
 
-abstract contract AbtractAction is State {
+abstract contract AbstractAction is State, IAbstractAction {
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
@@ -77,12 +78,7 @@ abstract contract AbtractAction is State {
         (ct, ds) = core.swapAsset(id, dsId);
     }
 
-    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256 amount, address token) {
-        _transferFromUser(params.tokenIn, params.amountIn);
-        (amount, token) = _swapNoTransfer(params);
-    }
-
-    function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params)
+    function _swapNoTransfer(ICorkSwapAggregator.AggregatorParams memory params)
         internal
         returns (uint256 amount, address token)
     {
@@ -100,7 +96,8 @@ abstract contract AbtractAction is State {
         view
         returns (address ct, address ds, uint256 dsId)
     {
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 length = tokens.length;
+        for (uint256 i = 0; i < length; ++i) {
             try Asset(tokens[i].token).dsId() returns (uint256 _dsId) {
                 dsId = _dsId;
                 (ct, ds) = __getCtDs(id, dsId);
@@ -110,8 +107,7 @@ abstract contract AbtractAction is State {
                 // solhint-disable-next-line no-empty-blocks
             } catch {}
         }
-        // TODO : move to interface as custom errors
-        revert("Invalid tokens");
+        revert InvalidTokens();
     }
 
     function _handleLvRedeemDsExpired(Id id, address ct, address ds, uint256 dsId) internal {
@@ -123,22 +119,22 @@ abstract contract AbtractAction is State {
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
-        ICorkSwapAggregator.LvRedeemParams memory LvRedeemParams =
+        ICorkSwapAggregator.LvRedeemParams memory lvRedeemParams =
             abi.decode(params, (ICorkSwapAggregator.LvRedeemParams));
 
-        (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, LvRedeemParams.id);
-        (address ra, address pa) = __getRaPair(LvRedeemParams.id);
+        (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, lvRedeemParams.id);
+        (address ra, address pa) = __getRaPair(lvRedeemParams.id);
 
         if (Asset(ct).isExpired()) {
-            _handleLvRedeemDsExpired(LvRedeemParams.id, ct, ds, dsId);
+            _handleLvRedeemDsExpired(lvRedeemParams.id, ct, ds, dsId);
         } else {
-            _handleLvRedeemDsActive(LvRedeemParams.id, ct, ds, dsId, LvRedeemParams.dsMinOut, LvRedeemParams.receiver);
+            _handleLvRedeemDsActive(lvRedeemParams.id, ct, ds, dsId, lvRedeemParams.dsMinOut, lvRedeemParams.receiver);
         }
 
-        _swapNoTransfer(LvRedeemParams.paSwapAggregatorData);
+        _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
 
-        _transfer(ra, LvRedeemParams.receiver, _contractBalance(ra));
-        _transfer(pa, LvRedeemParams.receiver, _contractBalance(pa));
+        _transfer(ra, lvRedeemParams.receiver, _contractBalance(ra));
+        _transfer(pa, lvRedeemParams.receiver, _contractBalance(pa));
     }
 
     function _handleLvRedeemDsActive(Id id, address ct, address ds, uint256 dsId, uint256 amountOutMin, address user)
@@ -164,28 +160,10 @@ abstract contract AbtractAction is State {
 
         // sell remaining CT or DS
         if (isCt) {
-            _increaseAllowance(ct, HOOK, diff);
+            bool success = _handleSwap(ct, ra, true, diff, false);
 
-            IPoolManager manager = IPoolManager(_hook().getPoolManager());
-            bytes memory raw;
-            {
-                PoolKey memory key = _hook().getPoolKey(ra, ct);
-                // we want to swap ct for ra
-                // so if ra is less than ct that means
-                // ra is token0 and ct is token1 -> false
-                // else -> true
-                bool zeroForOne = ra < ct ? false : true;
-
-                IPoolManager.SwapParams memory swapParams =
-                    IPoolManager.SwapParams(zeroForOne, -int256(diff), Constants.SQRT_PRICE_1_1);
-                raw = abi.encode(key, swapParams, ct, ra);
-            }
-
-            // unlock and init swap
             // will just transfer the ct to user if it fails to swap
-            // solhint-disable-next-line no-empty-blocks
-            try manager.unlock(raw) {}
-            catch {
+            if (!success) {
                 _transfer(ct, user, _contractBalance(ct));
             }
         } else {
@@ -202,33 +180,103 @@ abstract contract AbtractAction is State {
         }
     }
 
-    function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
+    function _swap(ICorkSwapAggregator.AggregatorParams memory params)
+        internal
+        returns (uint256 amount, address token)
+    {
+        _transferFromUser(params.tokenIn, params.amountIn);
+        (amount, token) = _swapNoTransfer(params);
+    }
+
+    // handle ct/ra swap without intermediate token
+    function _swap(Id id, bool raForCt, bool exactIn, uint256 amount)
+        internal
+        returns (uint256 amountOut, address output)
+    {
+        address input;
+        {
+            (address ra,) = __getRaPair(id);
+            (address ct,) = __getCtDs(id);
+
+            (input, output) = raForCt ? (ra, ct) : (ct, ra);
+        }
+
+        _handleSwap(input, output, exactIn, amount, true);
+
+        amountOut = _contractBalance(output);
+    }
+
+    function _handleSwap(address input, address output, bool exactIn, uint256 amount, bool allowExplicitRevert)
+        internal
+        returns (bool success)
+    {
+        IPoolManager manager = IPoolManager(_hook().getPoolManager());
+        PoolKey memory key = _hook().getPoolKey(input, output);
+
+        // we want to swap arbitrary input to output token
+        // so if input is less than output that means
+        // input is token0 and output is token1 -> true
+        // else means input is token1 and output is token0 -> false
+        bool zeroForOne = input < output ? true : false;
+
+        int256 swapAmount = exactIn ? -int256(amount) : int256(amount);
+
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams(zeroForOne, swapAmount, Constants.SQRT_PRICE_1_1);
+
+        bytes memory raw = abi.encode(key, swapParams, input, output, exactIn);
+
+        // increase allowance for hook
+        _increaseAllowance(input, HOOK, amount);
+
+        if (allowExplicitRevert) {
+            manager.unlock(raw);
+            return true;
+        }
+
+        try manager.unlock(raw) {
+            success = true;
+        } catch {
+            success = false;
+        }
+    }
+
+    function _handleSwapCallback(bytes calldata raw) internal {
         address manager = _hook().getPoolManager();
 
         if (msg.sender != manager) {
-            // TODO : move to custom error
-            revert("only manager");
+            revert OnlyManager();
         }
 
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _ct, address _ra) =
-            abi.decode(rawData, (PoolKey, IPoolManager.SwapParams, address, address));
+        // TODO : here exactIn is not used
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));
 
-        Currency ct = Currency.wrap(_ct);
-        Currency ra = Currency.wrap(_ra);
+        Currency input = Currency.wrap(_input);
+        Currency output = Currency.wrap(_output);
 
-        uint256 settleAmount = uint256(-params.amountSpecified);
+        // order based on delta amount(i.e token0 and token1)
+        (input, output) = input < output ? (input, output) : (output, input);
 
-        // we basically brute force the delta
-        // since if it's the same as we specified, then the other one must be the swap output
-        // we don't need to revers(-) the number since if it's owed to us, the number will always be positive
-        uint256 takeAmount = BalanceDeltaLibrary.amount0(delta) == params.amountSpecified
-            ? uint256(uint128(BalanceDeltaLibrary.amount1(delta)))
-            : uint256(uint128(BalanceDeltaLibrary.amount0(delta)));
+        int256 amount0 = int256(int128(BalanceDeltaLibrary.amount0(delta)));
+        int256 amount1 = int256(int128(BalanceDeltaLibrary.amount1(delta)));
 
-        CurrencySettler.settle(ct, IPoolManager(manager), address(this), settleAmount, false);
-        CurrencySettler.take(ra, IPoolManager(manager), address(this), takeAmount, false);
+        uint256 settleAmount;
+        uint256 takeAmount;
+
+        // we pair the input and output token with the amount
+        (input, settleAmount, output, takeAmount) = amount0 < 0
+            ? (input, uint256(-amount0), output, uint256(amount1))
+            : (output, uint256(-amount1), input, uint256(amount0));
+
+        CurrencySettler.settle(input, IPoolManager(manager), address(this), settleAmount, false);
+        CurrencySettler.take(output, IPoolManager(manager), address(this), takeAmount, false);
+    }
+
+    function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
+        _handleSwapCallback(rawData);
     }
 }
