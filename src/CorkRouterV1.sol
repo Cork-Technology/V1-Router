@@ -116,14 +116,14 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
         _transferToUser(ct, amountOut);
     }
 
-    // we don't have an explicit slippage protection(max amount in) since the amount out min on the swap params
+    // we don't have an explicit slippage protection(max amount in) since the amount out we get from the aggregator swap(if any)s
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
     function swapRaForCtExactOut(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 amountOut)
         external
         returns (uint256 used, uint256 remaining)
     {
         // we expect ra to come out from this
-        (address initial, address ra) = _swap(params);
+        (uint256 initial, address ra) = _swap(params);
 
         address ct;
         (amountOut, ct) = _swap(id, true, false, amountOut);
@@ -141,20 +141,76 @@ contract CorkRouterV1 is State, AbtractAction, IWithdrawalRouter {
         _transferToUser(ra, remaining);
     }
 
-    function swapCtForRaExactIn(ICorkSwapAggregator.SwapParams calldata params, Id id, uint256 amountOutMin)
-        external
-        returns (uint256 amountOut)
-    {
-        // address ra;
-        // (amountOut, ra) = _swap(id, true, true, amount);
+    function swapCtForRaExactIn(
+        ICorkSwapAggregator.SwapParams memory params,
+        Id id,
+        uint256 ctAmount,
+        uint256 raAmountOutMin
+    ) external returns (uint256 amountOut) {
+        (address ct,) = __getCtDs(id);
+        _transferFromUser(ct, ctAmount);
 
-        // if (amountOut < amountOutMin) revert("Slippage");
+        address ra;
+        (amountOut, ra) = _swap(id, false, true, ctAmount);
 
-        // address tokenOut;
-        // (amountOut, tokenOut) = _swap(params);
+        // we override the params
+        // so that the aggregator contract get's the correct amount of funds
+        // it's advised to use aggregator that supports exact in swap since this will be using that.
+        // to set the minimum amount out for the RA -> target token swap,
+        // consider doing it by :
+        // 1. getting apreview of the CT -> RA trade
+        // 2. do an offchain preview of RA -> target token with the amount from step 1
+        // 3. use number from step 2 as the reference.
+        params.amountIn = amountOut;
 
-        // _transferToUser(tokenOut, amountOut);
+        if (amountOut < raAmountOutMin) revert("Slippage");
+
+        address tokenOut;
+        (amountOut, tokenOut) = _swapNoTransfer(params);
+
+        _transferToUser(tokenOut, amountOut);
+        // transfer any unused ra
+        _transferToUser(ra, _contractBalance(ra));
     }
 
-    function swapCtForRaExactOut() external {}
+    // TODO : move all to interface and give accurate explanation
+    // TODO : add events for all actions
+    // TODO : make contract upgradeable
+    function swapCtForRaExactOut(
+        ICorkSwapAggregator.SwapParams memory params,
+        Id id,
+        uint256 rAmountOut,
+        uint256 amountInMax
+    ) external returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut) {
+        (address ct,) = __getCtDs(id);
+
+        // we transfer the max amount first, and we will give back the unused ct later
+        _transferFromUser(ct, amountInMax);
+        uint256 initial = amountInMax;
+
+        (uint256 amountOut,) = _swap(id, false, false, rAmountOut);
+
+        // we override the params
+        // so that the aggregator contract get's the correct amount of funds
+        // it's advised to use aggregator that supports exact in swap since this will be using that.
+        // to set the minimum amount out for the RA -> target token swap,
+        // consider doing it by :
+        // 1. getting apreview of the CT -> RA trade
+        // 2. do an offchain preview of RA -> target token with the amount from step 1
+        // 3. use number from step 2 as the reference.
+        params.amountIn = amountOut;
+
+        address tokenOut;
+        (amountOut, tokenOut) = _swapNoTransfer(params);
+        tokenOutAmountOut = amountOut;
+
+        _transferToUser(tokenOut, amountOut);
+
+        ctUsed = initial - _contractBalance(ct);
+        assert(ctUsed + _contractBalance(ct) == initial);
+
+        ctRemaining = _contractBalance(ct);
+        // transfer any unused ct
+        _transferToUser(ct, ctRemaining);
+    }
 }
