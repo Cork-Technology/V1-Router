@@ -5,6 +5,9 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
 interface ICorkSwapAggregator {
+    /// @notice Thrown when the address is zero
+    error ZeroAddress();
+
     // TODO : make checks for checking token in and token out is the same when aggregator is disabled
     struct AggregatorParams {
         // the input token address, if enableAggregator is false

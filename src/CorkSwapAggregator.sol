@@ -14,6 +14,9 @@ contract CorkSwapAggregator is ICorkSwapAggregator {
     uint256 internal constant _APPROVE_FUND = 0x100;
 
     constructor(address _kyberRouter) {
+        if (_kyberRouter == address(0)) {
+            revert ZeroAddress();
+        }
         KYBER_ROUTER = _kyberRouter;
     }
 
