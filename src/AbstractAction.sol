@@ -185,12 +185,10 @@ abstract contract AbtractAction is State {
     }
 
     // handle ct/ra swap without intermediate token
-    function _swap(
-        Id id,
-        bool raForCt,
-        bool exactIn,
-        uint256 amount
-    ) internal returns (uint256 amountOut, address output) {
+    function _swap(Id id, bool raForCt, bool exactIn, uint256 amount)
+        internal
+        returns (uint256 amountOut, address output)
+    {
         address input;
         {
             (address ra,) = __getRaPair(id);
@@ -222,7 +220,7 @@ abstract contract AbtractAction is State {
         IPoolManager.SwapParams memory swapParams =
             IPoolManager.SwapParams(zeroForOne, swapAmount, Constants.SQRT_PRICE_1_1);
 
-        bytes memory raw = abi.encode(key, swapParams, input, output);
+        bytes memory raw = abi.encode(key, swapParams, input, output, exactIn);
 
         // increase allowance for hook
         _increaseAllowance(input, HOOK, amount);
@@ -247,8 +245,8 @@ abstract contract AbtractAction is State {
             revert("only manager");
         }
 
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output) =
-            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address));
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));
@@ -256,14 +254,19 @@ abstract contract AbtractAction is State {
         Currency input = Currency.wrap(_input);
         Currency output = Currency.wrap(_output);
 
-        uint256 settleAmount = uint256(-params.amountSpecified);
+        // order based on delta amount(i.e token0 and token1)
+        (input, output) = input < output ? (input, output) : (output, input);
 
-        // we basically brute force the delta
-        // since if it's the same as we specified, then the other one must be the swap output
-        // we don't need to revers(-) the number since if it's owed to us, the number will always be positive
-        uint256 takeAmount = BalanceDeltaLibrary.amount0(delta) == params.amountSpecified
-            ? uint256(uint128(BalanceDeltaLibrary.amount1(delta)))
-            : uint256(uint128(BalanceDeltaLibrary.amount0(delta)));
+        int256 amount0 = int256(int128(BalanceDeltaLibrary.amount0(delta)));
+        int256 amount1 = int256(int128(BalanceDeltaLibrary.amount1(delta)));
+
+        uint256 settleAmount;
+        uint256 takeAmount;
+
+        // we pair the input and output token with the amount
+        (input, settleAmount, output, takeAmount) = amount0 < 0
+            ? (input, uint256(-amount0), output, uint256(amount1))
+            : (output, uint256(-amount1), input, uint256(amount0));
 
         CurrencySettler.settle(input, IPoolManager(manager), address(this), settleAmount, false);
         CurrencySettler.take(output, IPoolManager(manager), address(this), takeAmount, false);
