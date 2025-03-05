@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/Cork-Technology/V1-Router#readme",
   "devDependencies": {
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "solhint": "^5.0.5"
   }
 }
