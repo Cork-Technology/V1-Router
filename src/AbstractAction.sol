@@ -17,8 +17,9 @@ import {Constants} from "Cork-Hook/Constants.sol";
 import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
+import {IAbstractAction} from "./interfaces/IAbstractAction.sol";
 
-abstract contract AbtractAction is State {
+abstract contract AbstractAction is State, IAbstractAction {
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
@@ -95,7 +96,8 @@ abstract contract AbtractAction is State {
         view
         returns (address ct, address ds, uint256 dsId)
     {
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 length = tokens.length;
+        for (uint256 i = 0; i < length; ++i) {
             try Asset(tokens[i].token).dsId() returns (uint256 _dsId) {
                 dsId = _dsId;
                 (ct, ds) = __getCtDs(id, dsId);
@@ -105,8 +107,7 @@ abstract contract AbtractAction is State {
                 // solhint-disable-next-line no-empty-blocks
             } catch {}
         }
-        // TODO : move to interface as custom errors
-        revert("Invalid tokens");
+        revert InvalidTokens();
     }
 
     function _handleLvRedeemDsExpired(Id id, address ct, address ds, uint256 dsId) internal {
@@ -118,22 +119,22 @@ abstract contract AbtractAction is State {
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
-        ICorkSwapAggregator.LvRedeemParams memory LvRedeemParams =
+        ICorkSwapAggregator.LvRedeemParams memory lvRedeemParams =
             abi.decode(params, (ICorkSwapAggregator.LvRedeemParams));
 
-        (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, LvRedeemParams.id);
-        (address ra, address pa) = __getRaPair(LvRedeemParams.id);
+        (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, lvRedeemParams.id);
+        (address ra, address pa) = __getRaPair(lvRedeemParams.id);
 
         if (Asset(ct).isExpired()) {
-            _handleLvRedeemDsExpired(LvRedeemParams.id, ct, ds, dsId);
+            _handleLvRedeemDsExpired(lvRedeemParams.id, ct, ds, dsId);
         } else {
-            _handleLvRedeemDsActive(LvRedeemParams.id, ct, ds, dsId, LvRedeemParams.dsMinOut, LvRedeemParams.receiver);
+            _handleLvRedeemDsActive(lvRedeemParams.id, ct, ds, dsId, lvRedeemParams.dsMinOut, lvRedeemParams.receiver);
         }
 
-        _swapNoTransfer(LvRedeemParams.paSwapAggregatorData);
+        _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
 
-        _transfer(ra, LvRedeemParams.receiver, _contractBalance(ra));
-        _transfer(pa, LvRedeemParams.receiver, _contractBalance(pa));
+        _transfer(ra, lvRedeemParams.receiver, _contractBalance(ra));
+        _transfer(pa, lvRedeemParams.receiver, _contractBalance(pa));
     }
 
     function _handleLvRedeemDsActive(Id id, address ct, address ds, uint256 dsId, uint256 amountOutMin, address user)
@@ -244,12 +245,12 @@ abstract contract AbtractAction is State {
         address manager = _hook().getPoolManager();
 
         if (msg.sender != manager) {
-            // TODO : move to custom error
-            revert("only manager");
+            revert OnlyManager();
         }
 
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn)
-        = abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
+        // TODO : here exactIn is not used
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));

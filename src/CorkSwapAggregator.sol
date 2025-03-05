@@ -8,13 +8,16 @@ import {TransferHelper} from "./lib/TransferHelper.sol";
 contract CorkSwapAggregator is ICorkSwapAggregator {
     using TransferHelper for address;
 
-    address public immutable kyberRouter;
+    address public immutable KYBER_ROUTER;
 
     // KyberSwap flags
     uint256 internal constant _APPROVE_FUND = 0x100;
 
     constructor(address _kyberRouter) {
-        kyberRouter = _kyberRouter;
+        if (_kyberRouter == address(0)) {
+            revert ZeroAddress();
+        }
+        KYBER_ROUTER = _kyberRouter;
     }
 
     function swap(AggregatorParams calldata params) external override returns (uint256 amountOut) {
@@ -26,7 +29,7 @@ contract CorkSwapAggregator is ICorkSwapAggregator {
             abi.decode(params.extRouterData, (address, address, bytes, uint256));
 
         // Approve KyberSwap router or approveTarget to spend these tokens
-        address approveAddress = approveTarget == address(0) ? kyberRouter : approveTarget;
+        address approveAddress = approveTarget == address(0) ? KYBER_ROUTER : approveTarget;
         params.tokenIn.safeApprove(approveAddress, params.amountIn);
 
         // Prepare the swap description for KyberSwap
@@ -64,7 +67,7 @@ contract CorkSwapAggregator is ICorkSwapAggregator {
         });
 
         // Execute the swap
-        (amountOut,) = MetaAggregationRouterV2(kyberRouter).swap(executionParams);
+        (amountOut,) = MetaAggregationRouterV2(KYBER_ROUTER).swap(executionParams);
 
         // Transfer the swapped tokens back to the sender
         params.tokenOut.safeTransfer(msg.sender, amountOut);
