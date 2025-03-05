@@ -1,0 +1,32 @@
+{
+  "name": "cork-v1-router",
+  "version": "1.0.0",
+  "description": "Router for Cork Protocol",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "prepare": "husky install",
+    "test": "forge clean && forge test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cork-Technology/V1-Router.git"
+  },
+  "keywords": [
+    "Cork",
+    "Router",
+    "Defi"
+  ],
+  "author": "Cork Protocol",
+  "license": "BUSL-1.1",
+  "bugs": {
+    "url": "https://github.com/Cork-Technology/V1-Router/issues"
+  },
+  "homepage": "https://github.com/Cork-Technology/V1-Router#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

@@ -248,8 +248,8 @@ abstract contract AbtractAction is State {
             revert("only manager");
         }
 
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn)
-        = abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));
