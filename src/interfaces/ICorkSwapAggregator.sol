@@ -6,7 +6,7 @@ import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRout
 
 interface ICorkSwapAggregator {
     // TODO : make checks for checking token in and token out is the same when aggregator is disabled
-    struct SwapParams {
+    struct AggregatorParams {
         // the input token address, if enableAggregator is false
         // you should set this as the target RA/PA if you're doing a "zap" out swap
         // e.g swapping CT -> RA -> Other Token
@@ -51,7 +51,7 @@ interface ICorkSwapAggregator {
         uint256 dsMinOut;
         // aggregator swap data for pa token -> RA
         // the amount in should include the amount of idle PA and the PA we got from redeeming CT(if the CT is expired)
-        ICorkSwapAggregator.SwapParams paSwapAggregatorData;
+        ICorkSwapAggregator.AggregatorParams paSwapAggregatorData;
     }
 
     struct SwapRaForDsParams {
@@ -60,7 +60,7 @@ interface ICorkSwapAggregator {
         uint256 amountOutMin;
         IDsFlashSwapCore.BuyAprroxParams approxParams;
         IDsFlashSwapCore.OffchainGuess offchainGuess;
-        ICorkSwapAggregator.SwapParams inputTokenSwapParams;
+        ICorkSwapAggregator.AggregatorParams inputTokenAggregatorParams;
     }
 
     struct SwapDsForRaParams {
@@ -68,8 +68,8 @@ interface ICorkSwapAggregator {
         uint256 dsId;
         uint256 amount;
         uint256 raAmountOutMin;
-        ICorkSwapAggregator.SwapParams raSwapParams;
+        ICorkSwapAggregator.AggregatorParams raAggregatorParams;
     }
 
-    function swap(SwapParams calldata params) external returns (uint256 amountOut);
+    function swap(AggregatorParams calldata params) external returns (uint256 amountOut);
 }

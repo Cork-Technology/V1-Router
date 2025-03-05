@@ -63,10 +63,10 @@ contract TestBase is Helper {
         return IERC20(token).balanceOf(who);
     }
 
-    function defaultSwapParams(address tokenIn, address tokenOut, uint256 amountIn)
+    function defaultAggregatorParams(address tokenIn, address tokenOut, uint256 amountIn)
         internal
         view
-        returns (ICorkSwapAggregator.SwapParams memory params)
+        returns (ICorkSwapAggregator.AggregatorParams memory params)
     {
         params.tokenIn = tokenIn;
         params.tokenOut = tokenOut;

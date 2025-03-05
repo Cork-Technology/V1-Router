@@ -54,16 +54,17 @@ contract SwapCt is TestBase {
         address tokenIn = enableAggregator ? address(randomToken) : address(ra);
         address tokenOut = address(ra);
 
-        ICorkSwapAggregator.SwapParams memory swapParams = defaultSwapParams(tokenIn, tokenOut, amountIn);
+        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         uint256 tokenInBalanceBefore = balance(tokenIn, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(ct, DEFAULT_ADDRESS);
 
         // test slippage
         vm.expectRevert();
-        router.swapRaForCtExactIn(swapParams, defaultCurrencyId, 100000 ether);
+        router.swapRaForCtExactIn(AggregatorParams, defaultCurrencyId, 100000 ether);
 
-        uint256 amountOut = router.swapRaForCtExactIn(swapParams, defaultCurrencyId, 0);
+        uint256 amountOut = router.swapRaForCtExactIn(AggregatorParams, defaultCurrencyId, 0);
 
         uint256 tokenInBalanceAfter = balance(tokenIn, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(ct, DEFAULT_ADDRESS);
@@ -87,9 +88,11 @@ contract SwapCt is TestBase {
         uint256 tokenInBalanceBefore = balance(address(ra), DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(ct, DEFAULT_ADDRESS);
 
-        ICorkSwapAggregator.SwapParams memory swapParams = defaultSwapParams(tokenIn, tokenOut, amountIn);
+        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
-        (uint256 used, uint256 remaining) = router.swapRaForCtExactOut(swapParams, defaultCurrencyId, amountOutExpected);
+        (uint256 used, uint256 remaining) =
+            router.swapRaForCtExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected);
 
         uint256 tokenInBalanceAfter = balance(address(ra), DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(ct, DEFAULT_ADDRESS);
@@ -113,24 +116,25 @@ contract SwapCt is TestBase {
         address tokenIn = address(ra);
         address tokenOut = enableAggregator ? address(randomToken) : address(ra);
 
-        ICorkSwapAggregator.SwapParams memory swapParams = defaultSwapParams(tokenIn, tokenOut, amountIn);
+        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);
 
         // test slippage
         vm.expectRevert();
-        router.swapCtForRaExactIn(swapParams, defaultCurrencyId, amountIn, 100000 ether);
+        router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 100000 ether);
 
         // use this without aggregator first to get the RA,
         // then we will revert the state so that we can test the aggregator with accurate RA
         snap();
-        ICorkSwapAggregator.SwapParams memory mockSwapParams = defaultSwapParams(tokenIn, tokenIn, 0);
-        uint256 amountOut = router.swapCtForRaExactIn(swapParams, defaultCurrencyId, amountIn, 0);
+        ICorkSwapAggregator.AggregatorParams memory mockAggregatorParams = defaultAggregatorParams(tokenIn, tokenIn, 0);
+        uint256 amountOut = router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0);
         restore();
 
-        swapParams.amountIn = amountOut;
-        amountOut = router.swapCtForRaExactIn(swapParams, defaultCurrencyId, amountIn, 0);
+        AggregatorParams.amountIn = amountOut;
+        amountOut = router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0);
 
         uint256 tokenInBalanceAfter = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(tokenOut, DEFAULT_ADDRESS);
@@ -150,13 +154,14 @@ contract SwapCt is TestBase {
         address tokenIn = address(ra);
         address tokenOut = enableAggregator ? address(randomToken) : address(ra);
 
-        ICorkSwapAggregator.SwapParams memory swapParams = defaultSwapParams(tokenIn, tokenOut, amountOutExpected);
+        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+            defaultAggregatorParams(tokenIn, tokenOut, amountOutExpected);
 
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);
 
         (uint256 used, uint256 remaining, uint256 tokenOutAmountOut) =
-            router.swapCtForRaExactOut(swapParams, defaultCurrencyId, amountOutExpected, amountIn);
+            router.swapCtForRaExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected, amountIn);
 
         uint256 tokenInBalanceAfter = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(tokenOut, DEFAULT_ADDRESS);

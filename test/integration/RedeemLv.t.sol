@@ -40,7 +40,8 @@ contract RedeemLv is TestBase {
     function testRedeemLvExpired() external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+        ICorkSwapAggregator.AggregatorParams memory params =
+            defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -51,7 +52,7 @@ contract RedeemLv is TestBase {
         router.depositLv(params, id, 0, 0);
         router.depositPsm(params, id);
 
-        params = defaultSwapParams(address(pa), address(ra), amount);
+        params = defaultAggregatorParams(address(pa), address(ra), amount);
 
         // redeem some ds + pa so that we got some pa
         uint256 redeemAmount = 1e18;
@@ -78,7 +79,7 @@ contract RedeemLv is TestBase {
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
         ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
-            DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 333444370419713515)
+            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 333444370419713515)
         );
 
         vm.warp(block.timestamp + 3 days);
@@ -96,7 +97,8 @@ contract RedeemLv is TestBase {
     function testRedeemLvActiveSellDs() external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+        ICorkSwapAggregator.AggregatorParams memory params =
+            defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -106,7 +108,7 @@ contract RedeemLv is TestBase {
         // deposit some lv and psm
         router.depositLv(params, id, 0, 0);
 
-        params = defaultSwapParams(address(pa), address(ra), amount);
+        params = defaultAggregatorParams(address(pa), address(ra), amount);
 
         // redeem lv with router
         address lv = moduleCore.lvAsset(id);
@@ -117,8 +119,9 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.LvRedeemParams memory routerData =
-            ICorkSwapAggregator.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0));
+        ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
+            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0)
+        );
 
         vm.warp(block.timestamp + 3 days);
 
@@ -135,7 +138,8 @@ contract RedeemLv is TestBase {
     function testRedeemLvActiveSellCt() external {
         uint256 amount = 10e18;
 
-        ICorkSwapAggregator.SwapParams memory params = defaultSwapParams(address(randomToken), address(ra), amount);
+        ICorkSwapAggregator.AggregatorParams memory params =
+            defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -148,7 +152,7 @@ contract RedeemLv is TestBase {
         // buy a little bit of ds so that we can test selling ct
         flashSwapRouter.swapRaforDs(id, 1, 0.0001 ether, 0, defaultBuyApproxParams(), defaultOffchainGuessParams());
 
-        params = defaultSwapParams(address(pa), address(ra), amount);
+        params = defaultAggregatorParams(address(pa), address(ra), amount);
 
         // redeem lv with router
         address lv = moduleCore.lvAsset(id);
@@ -159,8 +163,9 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.LvRedeemParams memory routerData =
-            ICorkSwapAggregator.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultSwapParams(address(pa), address(ra), 0));
+        ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
+            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0)
+        );
 
         vm.warp(block.timestamp + 3 days);
 

@@ -17,7 +17,7 @@ contract CorkSwapAggregator is ICorkSwapAggregator {
         kyberRouter = _kyberRouter;
     }
 
-    function swap(SwapParams calldata params) external override returns (uint256 amountOut) {
+    function swap(AggregatorParams calldata params) external override returns (uint256 amountOut) {
         // Transfer tokens from sender to this contract
         params.tokenIn.safeTransferFrom(msg.sender, address(this), params.amountIn);
 

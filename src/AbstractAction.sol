@@ -77,7 +77,7 @@ abstract contract AbtractAction is State {
         (ct, ds) = core.swapAsset(id, dsId);
     }
 
-    function _swapNoTransfer(ICorkSwapAggregator.SwapParams memory params)
+    function _swapNoTransfer(ICorkSwapAggregator.AggregatorParams memory params)
         internal
         returns (uint256 amount, address token)
     {
@@ -179,7 +179,10 @@ abstract contract AbtractAction is State {
         }
     }
 
-    function _swap(ICorkSwapAggregator.SwapParams memory params) internal returns (uint256 amount, address token) {
+    function _swap(ICorkSwapAggregator.AggregatorParams memory params)
+        internal
+        returns (uint256 amount, address token)
+    {
         _transferFromUser(params.tokenIn, params.amountIn);
         (amount, token) = _swapNoTransfer(params);
     }
@@ -245,8 +248,8 @@ abstract contract AbtractAction is State {
             revert("only manager");
         }
 
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
-            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn)
+        = abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));

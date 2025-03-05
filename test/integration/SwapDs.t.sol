@@ -43,16 +43,17 @@ contract SwapDs is TestBase {
     function testFuzzSwapRaForDs(bool enableAggregator) external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.SwapParams memory swapParams = defaultSwapParams(address(randomToken), address(ra), amount);
+        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+            defaultAggregatorParams(address(randomToken), address(ra), amount);
 
-        swapParams.enableAggregator = enableAggregator;
+        AggregatorParams.enableAggregator = enableAggregator;
 
         if (!enableAggregator) {
-            swapParams.tokenIn = address(ra);
+            AggregatorParams.tokenIn = address(ra);
         }
 
         ICorkSwapAggregator.SwapRaForDsParams memory params = ICorkSwapAggregator.SwapRaForDsParams(
-            defaultCurrencyId, 1, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), swapParams
+            defaultCurrencyId, 1, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), AggregatorParams
         );
 
         (address ct, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
@@ -80,13 +81,14 @@ contract SwapDs is TestBase {
     function testFuzzSwapDsForRa(bool enableAggregator) external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.SwapParams memory swapParams = defaultSwapParams(address(ra), address(randomToken), amount);
+        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+            defaultAggregatorParams(address(ra), address(randomToken), amount);
 
-        swapParams.enableAggregator = enableAggregator;
+        AggregatorParams.enableAggregator = enableAggregator;
 
         {
-            ICorkSwapAggregator.SwapParams memory swapRaParams =
-                defaultSwapParams(address(randomToken), address(ra), amount);
+            ICorkSwapAggregator.AggregatorParams memory swapRaParams =
+                defaultAggregatorParams(address(randomToken), address(ra), amount);
 
             if (!enableAggregator) {
                 swapRaParams.tokenIn = address(ra);
@@ -99,7 +101,7 @@ contract SwapDs is TestBase {
         }
 
         ICorkSwapAggregator.SwapDsForRaParams memory params =
-            ICorkSwapAggregator.SwapDsForRaParams(defaultCurrencyId, 1, amount, 0, swapParams);
+            ICorkSwapAggregator.SwapDsForRaParams(defaultCurrencyId, 1, amount, 0, AggregatorParams);
 
         (address ct, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
         allowFullAllowance(ds, address(router));
