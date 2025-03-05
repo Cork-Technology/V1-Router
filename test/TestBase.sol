@@ -12,6 +12,7 @@ contract TestBase is Helper {
     CorkRouterV1 public router;
     MockAggregator public mockAggregator;
     address caller;
+    uint256 stateId;
 
     function initTests() internal {
         vm.startPrank(DEFAULT_ADDRESS);
@@ -58,6 +59,10 @@ contract TestBase is Helper {
         IERC20(token).approve(to, type(uint128).max);
     }
 
+    function balance(address token, address who) internal returns (uint256) {
+        return IERC20(token).balanceOf(who);
+    }
+
     function defaultSwapParams(address tokenIn, address tokenOut, uint256 amountIn)
         internal
         view
@@ -78,5 +83,13 @@ contract TestBase is Helper {
 
     function _verifyNoFunds(address token, address target) internal {
         _verifyNoFunds(IERC20(token), target);
+    }
+
+    function snap() internal {
+        stateId = vm.snapshotState();
+    }
+
+    function restore() internal {
+        vm.revertToState(stateId);
     }
 }
