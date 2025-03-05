@@ -7,6 +7,7 @@ import {ICorkSwapAggregator} from "./interfaces/ICorkSwapAggregator.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
+import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 
 contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
     constructor(address __core, address __flashSwapRouter, address __hook) State(__core, __flashSwapRouter, __hook) {}
@@ -217,5 +218,33 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         ctRemaining = _contractBalance(ct);
         // transfer any unused ct
         _transferToUser(ct, ctRemaining);
+    }
+
+    function redeemRaWithDsPa(
+        ICorkSwapAggregator.AggregatorParams calldata zapInParams,
+        ICorkSwapAggregator.AggregatorParams memory zapOutParams,
+        Id id,
+        uint256 dsMaxIn,
+        uint256 amount
+    ) external {
+        (, address ds) = __getCtDs(id);
+
+        address pa;
+        (amount,pa) = _swap(zapInParams);
+
+        _transferFromUser(ds, dsMaxIn);
+        _increaseAllowanceForProtocol(ds, dsMaxIn);
+        _increaseAllowanceForProtocol(pa, amount);
+
+        uint256 dsId = Initialize(CORE).lastDsId(id);
+
+        (uint256 received,,, uint256 dsUsed) = _psm().redeemRaWithDsPa(id, dsId, amount);
+
+        zapOutParams.amountIn = received;
+
+        (uint256 amount,address outToken) = _swap(zapOutParams);
+
+        _transferToUser(outToken, amount);
+        _transferToUser(ds, _contractBalance(ds));
     }
 }
