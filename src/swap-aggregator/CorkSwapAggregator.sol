@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import {ICorkSwapAggregator} from "../interfaces/ICorkSwapAggregator.sol";
 import {MetaAggregationRouterV2} from "../interfaces/IMetaAggregationRouter.sol";

@@ -1,4 +1,4 @@
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 // solhint-disable
 
@@ -57,13 +57,15 @@ contract RedeemRaWithDsPa is TestBase {
         // 4. in the end we should get the same amount of randomtoken2 or RA as output
         uint256 amount = 0.1 ether;
 
-        address zapInInputToken = enableZapIn ? address(randomToken) : address(pa);
-        address zapOutOutputToken = enableZapOut ? address(randomToken2) : address(ra);
-
-        ICorkSwapAggregator.AggregatorParams memory zapInParams =
-            defaultAggregatorParams(zapInInputToken, address(pa), amount);
-        ICorkSwapAggregator.AggregatorParams memory zapOutParams =
-            defaultAggregatorParams(address(ra), zapOutOutputToken, amount);
+        address zapOutOutputToken;
+        ICorkSwapAggregator.AggregatorParams memory zapInParams;
+        ICorkSwapAggregator.AggregatorParams memory zapOutParams;
+        {
+            address zapInInputToken = enableZapIn ? address(randomToken) : address(pa);
+            zapInParams = defaultAggregatorParams(zapInInputToken, address(pa), amount);
+        }
+        zapOutOutputToken = enableZapOut ? address(randomToken2) : address(ra);
+        zapOutParams = defaultAggregatorParams(address(ra), zapOutOutputToken, amount);
         (address ct, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
 
         uint256 dsBalanceBefore = balance(ds, DEFAULT_ADDRESS);

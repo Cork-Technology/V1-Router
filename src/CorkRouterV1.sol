@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import {State} from "./State.sol";
 import {AbstractAction} from "./AbstractAction.sol";
@@ -11,10 +11,6 @@ import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
-    /// @notice __gap variable to prevent storage collisions
-    // slither-disable-next-line unused-state
-    uint256[49] private __gap;
-
     function depositPsm(ICorkSwapAggregator.AggregatorParams calldata params, Id id)
         external
         returns (uint256 received)

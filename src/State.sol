@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import {IPSMcore} from "Depeg-swap/contracts/interfaces/IPSMcore.sol";
 import {IVault} from "Depeg-swap/contracts/interfaces/IVault.sol";
@@ -7,14 +7,16 @@ import {ICorkHook} from "Cork-Hook/interfaces/ICorkHook.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {IState} from "./interfaces/IState.sol";
 
-abstract contract State is OwnableUpgradeable, UUPSUpgradeable {
+abstract contract State is OwnableUpgradeable, UUPSUpgradeable, IState {
     address public core;
     address public flashSwapRouter;
     address public hook;
 
-    /// @notice Thrown when an invalid address is provided
-    error InvalidAddress();
+    /// @notice __gap variable to prevent storage collisions
+    // slither-disable-next-line unused-state
+    uint256[49] private __gap;
 
     constructor() {
         _disableInitializers();
@@ -25,7 +27,7 @@ abstract contract State is OwnableUpgradeable, UUPSUpgradeable {
         initializer
     {
         if (__core == address(0) || __flashSwapRouter == address(0) || __hook == address(0) || _owner == address(0)) {
-            revert InvalidAddress();
+            revert ZeroAddress();
         }
         __Ownable_init(_owner);
 
