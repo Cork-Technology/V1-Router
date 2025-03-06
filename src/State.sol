@@ -17,7 +17,10 @@ abstract contract State is OwnableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address __core, address __flashSwapRouter, address __hook, address _owner) external initializer {
+    function initialize(address __core, address __flashSwapRouter, address __hook, address _owner)
+        external
+        initializer
+    {
         __Ownable_init(_owner);
 
         core = __core;
