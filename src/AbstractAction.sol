@@ -18,19 +18,18 @@ import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
 import {IAbstractAction} from "./interfaces/IAbstractAction.sol";
-import {Context}from "openzeppelin-contracts/contracts/utils/Context.sol";
 
-abstract contract AbstractAction is State, IAbstractAction, Context {
+abstract contract AbstractAction is State, IAbstractAction {
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
-        _increaseAllowance(token, CORE, amount);
+        _increaseAllowance(token, core, amount);
     }
 
     function _increaseAllowanceForRouter(address token, uint256 amount) internal {
-        _increaseAllowance(token, FLASH_SWAP_ROUTER, amount);
+        _increaseAllowance(token, flashSwapRouter, amount);
     }
 
     function _increaseAllowance(address token, address to, uint256 amount) internal {
@@ -63,18 +62,18 @@ abstract contract AbstractAction is State, IAbstractAction, Context {
     }
 
     function __getCtDs(Id id) internal view returns (address ct, address ds) {
-        Initialize core = Initialize(CORE);
+        Initialize core = Initialize(core);
         uint256 dsId = core.lastDsId(id);
         (ct, ds) = __getCtDs(id, dsId);
     }
 
     function __getRaPair(Id id) internal view returns (address ra, address pa) {
-        Initialize core = Initialize(CORE);
+        Initialize core = Initialize(core);
         (ra, pa) = core.underlyingAsset(id);
     }
 
     function __getCtDs(Id id, uint256 dsId) internal view returns (address ct, address ds) {
-        Initialize core = Initialize(CORE);
+        Initialize core = Initialize(core);
 
         (ct, ds) = core.swapAsset(id, dsId);
     }
@@ -168,7 +167,7 @@ abstract contract AbstractAction is State, IAbstractAction, Context {
                 _transfer(ct, user, _contractBalance(ct));
             }
         } else {
-            _increaseAllowance(ds, FLASH_SWAP_ROUTER, diff);
+            _increaseAllowance(ds, flashSwapRouter, diff);
             IDsFlashSwapCore flashswapRouter = _flashSwapRouter();
 
             // we essentially just give back the token to user if there's if for some reason
@@ -225,10 +224,10 @@ abstract contract AbstractAction is State, IAbstractAction, Context {
         IPoolManager.SwapParams memory swapParams =
             IPoolManager.SwapParams(zeroForOne, swapAmount, Constants.SQRT_PRICE_1_1);
 
-        bytes memory raw = abi.encode(key, swapParams, input, output, exactIn);
+        bytes memory raw = abi.encode(key, swapParams, input, output);
 
         // increase allowance for hook
-        _increaseAllowance(input, HOOK, amount);
+        _increaseAllowance(input, hook, amount);
 
         if (allowExplicitRevert) {
             manager.unlock(raw);
@@ -249,9 +248,8 @@ abstract contract AbstractAction is State, IAbstractAction, Context {
             revert OnlyManager();
         }
 
-        // TODO : here exactIn is not used
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
-            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));

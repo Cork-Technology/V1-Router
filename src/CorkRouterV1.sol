@@ -10,8 +10,6 @@ import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRout
 import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 
 contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
-    constructor(address __core, address __flashSwapRouter, address __hook) State(__core, __flashSwapRouter, __hook) {}
-
     function depositPsm(ICorkSwapAggregator.AggregatorParams calldata params, Id id)
         external
         returns (uint256 received)
@@ -105,7 +103,6 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         _transferToUser(token, _contractBalance(token));
     }
 
-    // TODO : double check this shit
     function swapRaForCtExactIn(ICorkSwapAggregator.AggregatorParams calldata params, Id id, uint256 amountOutMin)
         external
         returns (uint256 amountOut)
@@ -181,7 +178,6 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
 
     // TODO : move all to interface and give accurate explanation
     // TODO : add events for all actions
-    // TODO : make contract upgradeable
     function swapCtForRaExactOut(
         ICorkSwapAggregator.AggregatorParams memory params,
         Id id,
@@ -235,7 +231,7 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         _increaseAllowanceForProtocol(ds, dsMaxIn);
         _increaseAllowanceForProtocol(pa, amount);
 
-        uint256 dsId = Initialize(CORE).lastDsId(id);
+        uint256 dsId = Initialize(core).lastDsId(id);
 
         (uint256 received,,, uint256 used) = _psm().redeemRaWithDsPa(id, dsId, amount);
 

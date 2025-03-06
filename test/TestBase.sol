@@ -7,7 +7,7 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {CorkRouterV1} from "./../src/CorkRouterV1.sol";
 import {ICorkSwapAggregator} from "../src/interfaces/ICorkSwapAggregator.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import {ERC1967Proxy}from"openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 contract TestBase is Helper {
     CorkRouterV1 public router;
     MockAggregator public mockAggregator;
@@ -20,7 +20,12 @@ contract TestBase is Helper {
         vm.stopPrank();
 
         mockAggregator = new MockAggregator();
-        router = new CorkRouterV1(address(moduleCore), address(flashSwapRouter), address(hook));
+        router = new CorkRouterV1();
+        
+        ERC1967Proxy proxy = new ERC1967Proxy(address(router),"");
+        router = CorkRouterV1(address(proxy));
+
+        router.initialize(address(moduleCore), address(flashSwapRouter), address(hook), DEFAULT_ADDRESS);
     }
 
     function _recordCallers() internal {
