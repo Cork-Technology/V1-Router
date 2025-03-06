@@ -74,5 +74,5 @@ interface ICorkSwapAggregator {
         ICorkSwapAggregator.AggregatorParams raAggregatorParams;
     }
 
-    function swap(AggregatorParams calldata params) external returns (uint256 amountOut);
+    function swap(AggregatorParams calldata params, address caller) external returns (uint256 amountOut);
 }
