@@ -224,27 +224,31 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         ICorkSwapAggregator.AggregatorParams calldata zapInParams,
         ICorkSwapAggregator.AggregatorParams memory zapOutParams,
         Id id,
-        uint256 dsMaxIn,
-        uint256 amount
-    ) external {
+        uint256 dsMaxIn
+    ) external returns (uint256 dsUsed, uint256 outAmount) {
         (, address ds) = __getCtDs(id);
 
-        address pa;
-        (amount,pa) = _swap(zapInParams);
+        (uint256 amount, address pa) = _swap(zapInParams);
 
         _transferFromUser(ds, dsMaxIn);
+
         _increaseAllowanceForProtocol(ds, dsMaxIn);
         _increaseAllowanceForProtocol(pa, amount);
 
         uint256 dsId = Initialize(CORE).lastDsId(id);
 
-        (uint256 received,,, uint256 dsUsed) = _psm().redeemRaWithDsPa(id, dsId, amount);
+        (uint256 received,,, uint256 used) = _psm().redeemRaWithDsPa(id, dsId, amount);
+
+        dsUsed = used;
 
         zapOutParams.amountIn = received;
 
-        (uint256 amount,address outToken) = _swap(zapOutParams);
+        address outToken;
+        (outAmount, outToken) = _swap(zapOutParams);
 
-        _transferToUser(outToken, amount);
+        _transferToUser(outToken, _contractBalance(outToken));
+
+        // transfer unused DS
         _transferToUser(ds, _contractBalance(ds));
     }
 }
