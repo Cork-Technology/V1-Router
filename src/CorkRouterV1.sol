@@ -8,8 +8,13 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
+import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 
-contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
+contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
+    /// @notice __gap variable to prevent storage collisions
+    // slither-disable-next-line unused-state
+    uint256[49] private __gap;
+
     function depositPsm(ICorkSwapAggregator.AggregatorParams calldata params, Id id)
         external
         returns (uint256 received)
@@ -113,8 +118,7 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
 
         (amountOut, ct) = _swap(id, true, true, amount);
 
-        // TODO : move to custom errors
-        if (amountOut < amountOutMin) revert("Slippage");
+        if (amountOut < amountOutMin) revert Slippage();
 
         _transferToUser(ct, amountOut);
     }
@@ -166,7 +170,7 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         // 3. use number from step 2 as the reference.
         params.amountIn = amountOut;
 
-        if (amountOut < raAmountOutMin) revert("Slippage");
+        if (amountOut < raAmountOutMin) revert Slippage();
 
         address tokenOut;
         (amountOut, tokenOut) = _swapNoTransfer(params);

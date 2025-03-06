@@ -13,6 +13,9 @@ abstract contract State is OwnableUpgradeable, UUPSUpgradeable {
     address public flashSwapRouter;
     address public hook;
 
+    /// @notice Thrown when an invalid address is provided
+    error InvalidAddress();
+
     constructor() {
         _disableInitializers();
     }
@@ -21,6 +24,9 @@ abstract contract State is OwnableUpgradeable, UUPSUpgradeable {
         external
         initializer
     {
+        if (__core == address(0) || __flashSwapRouter == address(0) || __hook == address(0) || _owner == address(0)) {
+            revert InvalidAddress();
+        }
         __Ownable_init(_owner);
 
         core = __core;
@@ -28,6 +34,8 @@ abstract contract State is OwnableUpgradeable, UUPSUpgradeable {
         hook = __hook;
     }
 
+    /// @notice function for UUPS proxy upgrades with owner only access
+    // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function _vault() internal view returns (IVault) {

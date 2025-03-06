@@ -62,20 +62,16 @@ abstract contract AbstractAction is State, IAbstractAction {
     }
 
     function __getCtDs(Id id) internal view returns (address ct, address ds) {
-        Initialize core = Initialize(core);
-        uint256 dsId = core.lastDsId(id);
+        uint256 dsId = Initialize(core).lastDsId(id);
         (ct, ds) = __getCtDs(id, dsId);
     }
 
     function __getRaPair(Id id) internal view returns (address ra, address pa) {
-        Initialize core = Initialize(core);
-        (ra, pa) = core.underlyingAsset(id);
+        (ra, pa) = Initialize(core).underlyingAsset(id);
     }
 
     function __getCtDs(Id id, uint256 dsId) internal view returns (address ct, address ds) {
-        Initialize core = Initialize(core);
-
-        (ct, ds) = core.swapAsset(id, dsId);
+        (ct, ds) = Initialize(core).swapAsset(id, dsId);
     }
 
     function _swapNoTransfer(ICorkSwapAggregator.AggregatorParams memory params)

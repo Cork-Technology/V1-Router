@@ -83,8 +83,8 @@ contract TestBase is Helper {
     }
 
     function _verifyNoFunds(IERC20 token, address target) internal {
-        uint256 balance = token.balanceOf(target);
-        assertEq(balance, 0);
+        uint256 tokenBalance = token.balanceOf(target);
+        assertEq(tokenBalance, 0);
     }
 
     function _verifyNoFunds(address token, address target) internal {
