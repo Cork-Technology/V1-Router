@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import {State} from "./State.sol";
 import {AbstractAction} from "./AbstractAction.sol";
@@ -7,10 +7,10 @@ import {ICorkSwapAggregator} from "./interfaces/ICorkSwapAggregator.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
+import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
+import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 
-contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
-    constructor(address __core, address __flashSwapRouter, address __hook) State(__core, __flashSwapRouter, __hook) {}
-
+contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
     function depositPsm(ICorkSwapAggregator.AggregatorParams calldata params, Id id)
         external
         returns (uint256 received)
@@ -104,7 +104,6 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         _transferToUser(token, _contractBalance(token));
     }
 
-    // TODO : double check this shit
     function swapRaForCtExactIn(ICorkSwapAggregator.AggregatorParams calldata params, Id id, uint256 amountOutMin)
         external
         returns (uint256 amountOut)
@@ -115,8 +114,7 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
 
         (amountOut, ct) = _swap(id, true, true, amount);
 
-        // TODO : move to custom errors
-        if (amountOut < amountOutMin) revert("Slippage");
+        if (amountOut < amountOutMin) revert Slippage();
 
         _transferToUser(ct, amountOut);
     }
@@ -168,7 +166,7 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         // 3. use number from step 2 as the reference.
         params.amountIn = amountOut;
 
-        if (amountOut < raAmountOutMin) revert("Slippage");
+        if (amountOut < raAmountOutMin) revert Slippage();
 
         address tokenOut;
         (amountOut, tokenOut) = _swapNoTransfer(params);
@@ -180,7 +178,6 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
 
     // TODO : move all to interface and give accurate explanation
     // TODO : add events for all actions
-    // TODO : make contract upgradeable
     function swapCtForRaExactOut(
         ICorkSwapAggregator.AggregatorParams memory params,
         Id id,
@@ -217,5 +214,37 @@ contract CorkRouterV1 is State, AbstractAction, IWithdrawalRouter {
         ctRemaining = _contractBalance(ct);
         // transfer any unused ct
         _transferToUser(ct, ctRemaining);
+    }
+
+    function redeemRaWithDsPa(
+        ICorkSwapAggregator.AggregatorParams calldata zapInParams,
+        ICorkSwapAggregator.AggregatorParams memory zapOutParams,
+        Id id,
+        uint256 dsMaxIn
+    ) external returns (uint256 dsUsed, uint256 outAmount) {
+        (, address ds) = __getCtDs(id);
+
+        (uint256 amount, address pa) = _swap(zapInParams);
+
+        _transferFromUser(ds, dsMaxIn);
+
+        _increaseAllowanceForProtocol(ds, dsMaxIn);
+        _increaseAllowanceForProtocol(pa, amount);
+
+        uint256 dsId = Initialize(core).lastDsId(id);
+
+        (uint256 received,,, uint256 used) = _psm().redeemRaWithDsPa(id, dsId, amount);
+
+        dsUsed = used;
+
+        zapOutParams.amountIn = received;
+
+        address outToken;
+        (outAmount, outToken) = _swap(zapOutParams);
+
+        _transferToUser(outToken, _contractBalance(outToken));
+
+        // transfer unused DS
+        _transferToUser(ds, _contractBalance(ds));
     }
 }

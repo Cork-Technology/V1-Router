@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {IPoolManager} from "v4-periphery/lib/v4-core/src/interfaces/IPoolManager.sol";
@@ -25,11 +25,11 @@ abstract contract AbstractAction is State, IAbstractAction {
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
-        _increaseAllowance(token, CORE, amount);
+        _increaseAllowance(token, core, amount);
     }
 
     function _increaseAllowanceForRouter(address token, uint256 amount) internal {
-        _increaseAllowance(token, FLASH_SWAP_ROUTER, amount);
+        _increaseAllowance(token, flashSwapRouter, amount);
     }
 
     function _increaseAllowance(address token, address to, uint256 amount) internal {
@@ -62,20 +62,16 @@ abstract contract AbstractAction is State, IAbstractAction {
     }
 
     function __getCtDs(Id id) internal view returns (address ct, address ds) {
-        Initialize core = Initialize(CORE);
-        uint256 dsId = core.lastDsId(id);
+        uint256 dsId = Initialize(core).lastDsId(id);
         (ct, ds) = __getCtDs(id, dsId);
     }
 
     function __getRaPair(Id id) internal view returns (address ra, address pa) {
-        Initialize core = Initialize(CORE);
-        (ra, pa) = core.underlyingAsset(id);
+        (ra, pa) = Initialize(core).underlyingAsset(id);
     }
 
     function __getCtDs(Id id, uint256 dsId) internal view returns (address ct, address ds) {
-        Initialize core = Initialize(CORE);
-
-        (ct, ds) = core.swapAsset(id, dsId);
+        (ct, ds) = Initialize(core).swapAsset(id, dsId);
     }
 
     function _swapNoTransfer(ICorkSwapAggregator.AggregatorParams memory params)
@@ -84,7 +80,7 @@ abstract contract AbstractAction is State, IAbstractAction {
     {
         if (params.enableAggregator) {
             _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
-            return (ICorkSwapAggregator(params.extRouter).swap(params), params.tokenOut);
+            return (ICorkSwapAggregator(params.extRouter).swap(params, _msgSender()), params.tokenOut);
         } else {
             amount = params.amountIn;
             token = params.tokenIn;
@@ -167,7 +163,7 @@ abstract contract AbstractAction is State, IAbstractAction {
                 _transfer(ct, user, _contractBalance(ct));
             }
         } else {
-            _increaseAllowance(ds, FLASH_SWAP_ROUTER, diff);
+            _increaseAllowance(ds, flashSwapRouter, diff);
             IDsFlashSwapCore flashswapRouter = _flashSwapRouter();
 
             // we essentially just give back the token to user if there's if for some reason
@@ -224,10 +220,10 @@ abstract contract AbstractAction is State, IAbstractAction {
         IPoolManager.SwapParams memory swapParams =
             IPoolManager.SwapParams(zeroForOne, swapAmount, Constants.SQRT_PRICE_1_1);
 
-        bytes memory raw = abi.encode(key, swapParams, input, output, exactIn);
+        bytes memory raw = abi.encode(key, swapParams, input, output);
 
         // increase allowance for hook
-        _increaseAllowance(input, HOOK, amount);
+        _increaseAllowance(input, hook, amount);
 
         if (allowExplicitRevert) {
             manager.unlock(raw);
@@ -248,9 +244,8 @@ abstract contract AbstractAction is State, IAbstractAction {
             revert OnlyManager();
         }
 
-        // TODO : here exactIn is not used
-        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output, bool exactIn) =
-            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address, bool));
+        (PoolKey memory key, IPoolManager.SwapParams memory params, address _input, address _output) =
+            abi.decode(raw, (PoolKey, IPoolManager.SwapParams, address, address));
 
         // no flash swaps
         BalanceDelta delta = IPoolManager(manager).swap(key, params, bytes(""));
