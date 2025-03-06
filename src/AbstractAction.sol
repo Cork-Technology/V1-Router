@@ -18,8 +18,9 @@ import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
 import {IAbstractAction} from "./interfaces/IAbstractAction.sol";
+import {Context}from "openzeppelin-contracts/contracts/utils/Context.sol";
 
-abstract contract AbstractAction is State, IAbstractAction {
+abstract contract AbstractAction is State, IAbstractAction, Context {
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
@@ -84,7 +85,7 @@ abstract contract AbstractAction is State, IAbstractAction {
     {
         if (params.enableAggregator) {
             _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
-            return (ICorkSwapAggregator(params.extRouter).swap(params), params.tokenOut);
+            return (ICorkSwapAggregator(params.extRouter).swap(params, _msgSender()), params.tokenOut);
         } else {
             amount = params.amountIn;
             token = params.tokenIn;
