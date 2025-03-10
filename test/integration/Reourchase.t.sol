@@ -2,7 +2,7 @@ pragma solidity ^0.8.26;
 
 import {TestBase} from "./../TestBase.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
-import {ICorkSwapAggregator} from "../../src/interfaces/ICorkSwapAggregator.sol";
+import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -68,7 +68,7 @@ contract Repurchase is TestBase {
 
         address token = enableAggregator ? address(randomToken) : address(ra);
 
-        ICorkSwapAggregator.AggregatorParams memory params = defaultAggregatorParams(token, address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(token, address(ra), amount);
         params.enableAggregator = enableAggregator;
 
         router.depositPsm(params, defaultCurrencyId);

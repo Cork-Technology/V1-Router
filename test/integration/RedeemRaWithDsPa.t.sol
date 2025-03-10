@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 
 import {TestBase} from "./../TestBase.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
-import {ICorkSwapAggregator} from "../../src/interfaces/ICorkSwapAggregator.sol";
+import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
@@ -58,8 +58,8 @@ contract RedeemRaWithDsPa is TestBase {
         uint256 amount = 0.1 ether;
 
         address zapOutOutputToken;
-        ICorkSwapAggregator.AggregatorParams memory zapInParams;
-        ICorkSwapAggregator.AggregatorParams memory zapOutParams;
+        ICommon.AggregatorParams memory zapInParams;
+        ICommon.AggregatorParams memory zapOutParams;
         {
             address zapInInputToken = enableZapIn ? address(randomToken) : address(pa);
             zapInParams = defaultAggregatorParams(zapInInputToken, address(pa), amount);

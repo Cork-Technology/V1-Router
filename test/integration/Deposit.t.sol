@@ -2,7 +2,7 @@ pragma solidity ^0.8.26;
 
 import {TestBase} from "./../TestBase.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
-import {ICorkSwapAggregator} from "../../src/interfaces/ICorkSwapAggregator.sol";
+import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -31,7 +31,7 @@ contract Deposit is TestBase {
     function testDepositPsm() public {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
+        ICommon.AggregatorParams memory params =
             defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
@@ -53,7 +53,7 @@ contract Deposit is TestBase {
     function testDepositLv() public {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
+        ICommon.AggregatorParams memory params =
             defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
@@ -73,7 +73,7 @@ contract Deposit is TestBase {
     function testFuzzDepositPsm(bool enableAggregator) public {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
+        ICommon.AggregatorParams memory params =
             defaultAggregatorParams(address(randomToken), address(ra), amount);
         params.enableAggregator = enableAggregator;
 
@@ -100,7 +100,7 @@ contract Deposit is TestBase {
     function testFuzzDepositLv(bool enableAggregator) public {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
+        ICommon.AggregatorParams memory params =
             defaultAggregatorParams(address(randomToken), address(ra), amount);
         params.enableAggregator = enableAggregator;
 
