@@ -114,8 +114,7 @@ abstract contract AbstractAction is State {
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
-        LvRedeemParams memory lvRedeemParams =
-            abi.decode(params, (LvRedeemParams));
+        LvRedeemParams memory lvRedeemParams = abi.decode(params, (LvRedeemParams));
 
         (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, lvRedeemParams.id);
         (address ra, address pa) = __getRaPair(lvRedeemParams.id);
@@ -175,10 +174,7 @@ abstract contract AbstractAction is State {
         }
     }
 
-    function _swap(AggregatorParams memory params)
-        internal
-        returns (uint256 amount, address token)
-    {
+    function _swap(AggregatorParams memory params) internal returns (uint256 amount, address token) {
         _transferFromUser(params.tokenIn, params.amountIn);
         (amount, token) = _swapNoTransfer(params);
     }

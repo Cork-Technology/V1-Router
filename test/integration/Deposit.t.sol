@@ -31,8 +31,7 @@ contract Deposit is TestBase {
     function testDepositPsm() public {
         uint256 amount = 1e18;
 
-        ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -53,8 +52,7 @@ contract Deposit is TestBase {
     function testDepositLv() public {
         uint256 amount = 1e18;
 
-        ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -73,8 +71,7 @@ contract Deposit is TestBase {
     function testFuzzDepositPsm(bool enableAggregator) public {
         uint256 amount = 1e18;
 
-        ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
         params.enableAggregator = enableAggregator;
 
         if (!enableAggregator) {
@@ -100,8 +97,7 @@ contract Deposit is TestBase {
     function testFuzzDepositLv(bool enableAggregator) public {
         uint256 amount = 1e18;
 
-        ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
         params.enableAggregator = enableAggregator;
 
         if (!enableAggregator) {

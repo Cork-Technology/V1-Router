@@ -54,8 +54,7 @@ contract SwapCt is TestBase {
         address tokenIn = enableAggregator ? address(randomToken) : address(ra);
         address tokenOut = address(ra);
 
-        ICommon.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         uint256 tokenInBalanceBefore = balance(tokenIn, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(ct, DEFAULT_ADDRESS);
@@ -88,8 +87,7 @@ contract SwapCt is TestBase {
         uint256 tokenInBalanceBefore = balance(address(ra), DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(ct, DEFAULT_ADDRESS);
 
-        ICommon.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         (uint256 used, uint256 remaining) =
             router.swapRaForCtExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected);
@@ -116,8 +114,7 @@ contract SwapCt is TestBase {
         address tokenIn = address(ra);
         address tokenOut = enableAggregator ? address(randomToken) : address(ra);
 
-        ICommon.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);
@@ -154,8 +151,7 @@ contract SwapCt is TestBase {
         address tokenIn = address(ra);
         address tokenOut = enableAggregator ? address(randomToken) : address(ra);
 
-        ICommon.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountOutExpected);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountOutExpected);
 
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);

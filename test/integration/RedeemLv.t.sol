@@ -40,8 +40,7 @@ contract RedeemLv is TestBase {
     function testRedeemLvExpired() external {
         uint256 amount = 1e18;
 
-       ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -78,7 +77,7 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-       ICommon.LvRedeemParams memory routerData =ICommon.LvRedeemParams(
+        ICommon.LvRedeemParams memory routerData = ICommon.LvRedeemParams(
             DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 333444370419713515)
         );
 
@@ -97,8 +96,7 @@ contract RedeemLv is TestBase {
     function testRedeemLvActiveSellDs() external {
         uint256 amount = 1e18;
 
-       ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -119,9 +117,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-       ICommon.LvRedeemParams memory routerData =ICommon.LvRedeemParams(
-            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0)
-        );
+        ICommon.LvRedeemParams memory routerData =
+            ICommon.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0));
 
         vm.warp(block.timestamp + 3 days);
 
@@ -138,8 +135,7 @@ contract RedeemLv is TestBase {
     function testRedeemLvActiveSellCt() external {
         uint256 amount = 10e18;
 
-       ICommon.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -163,9 +159,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-       ICommon.LvRedeemParams memory routerData =ICommon.LvRedeemParams(
-            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0)
-        );
+        ICommon.LvRedeemParams memory routerData =
+            ICommon.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0));
 
         vm.warp(block.timestamp + 3 days);
 
