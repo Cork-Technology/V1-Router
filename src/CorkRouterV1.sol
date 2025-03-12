@@ -37,7 +37,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         _transferAllLvToUser(id);
 
-        emit DepositLv(_msgSender(), token, params.amountIn, id, raTolerance, ctTolerance, received);
+        emit DepositLv(_msgSender(), token, params.amountIn, id, received);
     }
 
     function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
@@ -46,21 +46,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
         external
-        returns (
-            uint256 dsId,
-            uint256 receivedPa,
-            uint256 receivedDs,
-            uint256 feePercentage,
-            uint256 fee,
-            uint256 exchangeRates
-        )
+        returns (RepurchaseReturn memory result)
     {
         address token;
         (amount, token) = _swap(params);
 
         _increaseAllowanceForProtocol(token, amount);
 
-        (dsId, receivedPa, receivedDs, feePercentage, fee, exchangeRates) = _psm().repurchase(id, amount);
+        (result.dsId, result.receivedPa, result.receivedDs, result.feePercentage, result.fee, result.exchangeRates) =
+            _psm().repurchase(id, amount);
 
         (, address ds) = __getCtDs(id);
         (, address pa) = __getRaPair(id);
@@ -69,7 +63,16 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         _transferToUser(pa, _contractBalance(pa));
 
         emit Repurchase(
-            _msgSender(), token, params.amountIn, id, dsId, receivedPa, receivedDs, feePercentage, fee, exchangeRates
+            _msgSender(),
+            token,
+            params.amountIn,
+            id,
+            result.dsId,
+            result.receivedPa,
+            result.receivedDs,
+            result.feePercentage,
+            result.fee,
+            result.exchangeRates
         );
     }
 
@@ -90,19 +93,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         _transferToUser(ct, _contractBalance(ct));
         _transferToUser(ds, _contractBalance(ds));
 
-        emit Swap(
-            _msgSender(),
-            SwapType.RaForDs,
-            token,
-            params.inputTokenAggregatorParams.amountIn,
-            ds,
-            _contractBalance(ds),
-            params.id,
-            params.dsId,
-            params.amountOutMin,
-            0, // maxInput
-            0, // unused
-            amount // used
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.RaForDs,
+                tokenIn: token,
+                amountIn: params.inputTokenAggregatorParams.amountIn,
+                tokenOut: ds,
+                amountOut: _contractBalance(ds),
+                id: params.id,
+                dsId: params.dsId,
+                minOutput: params.amountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: amount
+            })
         );
     }
 
@@ -122,19 +127,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         _transferToUser(token, _contractBalance(token));
 
-        emit Swap(
-            _msgSender(),
-            SwapType.DsForRa,
-            ds,
-            params.amount,
-            token,
-            amountOut,
-            params.id,
-            params.dsId,
-            params.raAmountOutMin,
-            0, // maxInput
-            0, // unused
-            params.amount // used
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.DsForRa,
+                tokenIn: ds,
+                amountIn: params.amount,
+                tokenOut: token,
+                amountOut: amountOut,
+                id: params.id,
+                dsId: params.dsId,
+                minOutput: params.raAmountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: params.amount
+            })
         );
     }
 
@@ -152,19 +159,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         _transferToUser(ct, amountOut);
 
-        emit Swap(
-            _msgSender(),
-            SwapType.RaForCtExactIn,
-            params.tokenIn,
-            params.amountIn,
-            ct,
-            amountOut,
-            id,
-            0, // dsId
-            amountOutMin,
-            0, // maxInput
-            0, // unused
-            amount // used
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.RaForCtExactIn,
+                tokenIn: params.tokenIn,
+                amountIn: params.amountIn,
+                tokenOut: ct,
+                amountOut: amountOut,
+                id: id,
+                dsId: 0,
+                minOutput: amountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: amount
+            })
         );
     }
 
@@ -192,19 +201,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         // we use token out here since the token out is expected to be the target RA
         _transferToUser(ra, remaining);
 
-        emit Swap(
-            _msgSender(),
-            SwapType.RaForCtExactOut,
-            ra,
-            initial,
-            ct,
-            amountOut,
-            id,
-            0, // dsId
-            0, // minOutput
-            0, // maxInput
-            remaining, // unused
-            used // used
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.RaForCtExactOut,
+                tokenIn: ra,
+                amountIn: initial,
+                tokenOut: ct,
+                amountOut: amountOut,
+                id: id,
+                dsId: 0,
+                minOutput: 0,
+                maxInput: 0,
+                unused: remaining,
+                used: used
+            })
         );
     }
 
@@ -237,19 +248,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         // transfer any unused ra
         _transferToUser(ra, _contractBalance(ra));
 
-        emit Swap(
-            _msgSender(),
-            SwapType.CtForRaExactIn,
-            ct,
-            ctAmount,
-            tokenOut,
-            amountOut,
-            id,
-            0, // dsId
-            raAmountOutMin,
-            0, // maxInput
-            _contractBalance(ra), // unused
-            ctAmount // used
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.CtForRaExactIn,
+                tokenIn: ct,
+                amountIn: ctAmount,
+                tokenOut: tokenOut,
+                amountOut: amountOut,
+                id: id,
+                dsId: 0,
+                minOutput: raAmountOutMin,
+                maxInput: 0,
+                unused: _contractBalance(ra),
+                used: ctAmount
+            })
         );
     }
 
@@ -288,19 +301,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         // transfer any unused ct
         _transferToUser(ct, ctRemaining);
 
-        emit Swap(
-            _msgSender(),
-            SwapType.CtForRaExactOut,
-            ct,
-            amountInMax,
-            tokenOut,
-            tokenOutAmountOut,
-            id,
-            0, // dsId
-            0, // minOutput
-            amountInMax, // maxInput
-            ctRemaining, // unused
-            ctUsed // used
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.CtForRaExactOut,
+                tokenIn: ct,
+                amountIn: amountInMax,
+                tokenOut: tokenOut,
+                amountOut: tokenOutAmountOut,
+                id: id,
+                dsId: 0,
+                minOutput: 0,
+                maxInput: amountInMax,
+                unused: ctRemaining,
+                used: ctUsed
+            })
         );
     }
 
@@ -331,6 +346,38 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         // transfer unused DS
         _transferToUser(ds, _contractBalance(ds));
 
-        emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, outToken, dsUsed, outAmount);
+        emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
+    }
+
+    struct SwapEventParams {
+        address sender;
+        SwapType swapType;
+        address tokenIn;
+        uint256 amountIn;
+        address tokenOut;
+        uint256 amountOut;
+        Id id;
+        uint256 dsId;
+        uint256 minOutput;
+        uint256 maxInput;
+        uint256 unused;
+        uint256 used;
+    }
+
+    function _emitSwapEvent(SwapEventParams memory params) internal {
+        emit Swap(
+            params.sender,
+            params.swapType,
+            params.tokenIn,
+            params.amountIn,
+            params.tokenOut,
+            params.amountOut,
+            params.id,
+            params.dsId,
+            params.minOutput,
+            params.maxInput,
+            params.unused,
+            params.used
+        );
     }
 }

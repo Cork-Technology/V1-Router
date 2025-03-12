@@ -11,41 +11,28 @@ interface ICorkRouterV1 is ICommon {
     function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received);
 
     // Event for depositPsm function
-    event DepositPsm(address indexed caller, address inputToken, uint256 inputAmount, Id id, uint256 received);
+    event DepositPsm(
+        address indexed caller, address inputToken, uint256 inputAmount, Id indexed id, uint256 ctDsReceived
+    );
 
     function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
         external
         returns (uint256 received);
 
     // Event for depositLv function
-    event DepositLv(
-        address indexed caller,
-        address inputToken,
-        uint256 inputAmount,
-        Id id,
-        uint256 raTolerance,
-        uint256 ctTolerance,
-        uint256 received
-    );
+    event DepositLv(address indexed caller, address inputToken, uint256 inputAmount, Id indexed id, uint256 lvReceived);
 
     function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
         external
-        returns (
-            uint256 dsId,
-            uint256 receivedPa,
-            uint256 receivedDs,
-            uint256 feePercentage,
-            uint256 fee,
-            uint256 exchangeRates
-        );
+        returns (RepurchaseReturn memory result);
 
     // Event for repurchase function
     event Repurchase(
         address indexed caller,
         address inputToken,
         uint256 inputAmount,
-        Id id,
-        uint256 dsId,
+        Id indexed id,
+        uint256 indexed dsId,
         uint256 receivedPa,
         uint256 receivedDs,
         uint256 feePercentage,
@@ -66,12 +53,12 @@ interface ICorkRouterV1 is ICommon {
     // Unified Swap event for all swap functions
     event Swap(
         address indexed caller,
-        SwapType swapType,
+        SwapType indexed swapType,
         address inputToken,
         uint256 inputAmount,
         address outputToken,
         uint256 outputAmount,
-        Id id,
+        Id indexed id,
         uint256 dsId,
         uint256 minOutput,
         uint256 maxInput,
@@ -115,7 +102,8 @@ interface ICorkRouterV1 is ICommon {
         uint256 paAmount,
         address dsToken,
         uint256 dsMaxIn,
-        Id id,
+        Id indexed id,
+        uint256 indexed dsId,
         address outputToken,
         uint256 dsUsed,
         uint256 outAmount

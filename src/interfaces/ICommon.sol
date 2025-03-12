@@ -82,4 +82,13 @@ interface ICommon {
         uint256 raAmountOutMin;
         AggregatorParams raAggregatorParams;
     }
+
+    struct RepurchaseReturn {
+        uint256 dsId;
+        uint256 receivedPa;
+        uint256 receivedDs;
+        uint256 feePercentage;
+        uint256 fee;
+        uint256 exchangeRates;
+    }
 }
