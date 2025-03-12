@@ -6,7 +6,6 @@ import {ICommon} from "./ICommon.sol";
 import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
-// TODO  check events input and output params
 interface ICorkRouterV1 is ICommon {
     function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received);
 

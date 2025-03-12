@@ -84,6 +84,10 @@ contract SwapDs is TestBase {
         ICommon.AggregatorParams memory AggregatorParams =
             defaultAggregatorParams(address(ra), address(randomToken), amount);
 
+        if (!enableAggregator) {
+            AggregatorParams.tokenOut = address(ra);
+        }
+
         AggregatorParams.enableAggregator = enableAggregator;
 
         {

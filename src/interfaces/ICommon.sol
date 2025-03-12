@@ -17,40 +17,41 @@ interface ICommon {
     /// @notice Thrown when non-manager calls the unlockCallback
     error OnlyManager();
 
-    // TODO : make checks for checking token in and token out is the same when aggregator is disabled
+    /// @notice additional parameters for external aggregator adapters(i.e contract that handles interaction to the actual routers)
+    /// external adapters should respect this parameters
     struct AggregatorParams {
-        // the input token address, if enableAggregator is false
-        // you should set this as the target RA/PA if you're doing a "zap" out swap
-        // e.g swapping CT -> RA -> Other Token
-        // else set this as the token you want to swap if doing "zap" in swap
-        // e.g swapping Other Token -> RA -> CT
+        /// the input token address, if enableAggregator is false
+        /// you should set this as the target RA/PA if you're doing a "zap" out swap
+        /// e.g swapping CT -> RA -> Other Token
+        /// else set this as the token you want to swap if doing "zap" in swap
+        /// e.g swapping Other Token -> RA -> CT
         address tokenIn;
-        // the output token address,
-        // user must set the same token address as token in if aggregator is disabled
-        // set this as the token you want to swap if doing "zap" in swap
-        // e.g swapping Other Token -> RA -> CT (set this to RA
-        // else set this as the target RA/PA if you're doing a "zap" out swap
-        // e.g swapping CT -> RA -> Other Token
+        /// the output token address,
+        /// user must set the same token address as token in if aggregator is disabled
+        /// set this as the token you want to swap if doing "zap" in swap
+        /// e.g swapping Other Token -> RA -> CT (set this to RA
+        /// else set this as the target RA/PA if you're doing a "zap" out swap
+        /// e.g swapping CT -> RA -> Other Token
         address tokenOut;
-        // the input token amount
-        // set this to 0 when doing exact out swaps
+        /// the input token amount
+        /// set this to 0 when doing exact out swaps
         uint256 amountIn;
-        // the output token target amount
-        // set this to 0 when doing exact in swaps
+        /// the output token target amount
+        /// set this to 0 when doing exact in swaps
         uint256 amountOut;
-        // the output token slippage protection
-        // the user must set the same value as amountIn if the aggregator is disabled
-        // set this to 0 when doing exact out swaps on the aggregator
+        /// the output token slippage protection
+        /// the user must set the same value as amountIn if the aggregator is disabled
+        /// set this to 0 when doing exact out swaps on the aggregator
         uint256 amountOutMin;
-        // the input token slippage protection when doing exact in swaps
-        // the user must set the same value as amountIn if the aggregator is disabled
-        // set this to 0 when doing exact in swaps on the aggregator
+        /// the input token slippage protection when doing exact in swaps
+        /// the user must set the same value as amountIn if the aggregator is disabled
+        /// set this to 0 when doing exact in swaps on the aggregator
         uint256 amountMaxIn;
-        // external swap aggregator, won't be used if enableAggregator is set to false
+        /// external swap aggregator, won't be used if enableAggregator is set to false
         address extRouter;
-        // external swap aggregator calldata, won't be used if enableAggregator is set to false
+        /// external swap aggregator calldata, won't be used if enableAggregator is set to false
         bytes extRouterData;
-        // if set to true will use external aggregator to swap token in to token out, and do the protocol interaction with token out
+        /// if set to true will use external aggregator to swap token in to token out, and do the protocol interaction with token out
         bool enableAggregator;
     }
 

@@ -19,6 +19,27 @@ import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettl
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
 
 abstract contract AbstractAction is State {
+    function _validateParams(AggregatorParams memory params) internal view {
+        if (params.enableAggregator) {
+            return;
+        }
+
+        if (params.tokenIn != params.tokenOut) {
+            revert InvalidTokens();
+        }
+    }
+
+    // solidity just straight up refused to work when we overload this
+    function _validateParamsCalldata(AggregatorParams calldata params) internal view {
+        if (params.enableAggregator) {
+            return;
+        }
+
+        if (params.tokenIn != params.tokenOut) {
+            revert InvalidTokens();
+        }
+    }
+
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
@@ -84,6 +105,10 @@ abstract contract AbstractAction is State {
             amount = params.amountIn;
             token = params.tokenIn;
         }
+    }
+
+    function _getDsId(Id id) internal view returns (uint256) {
+        return Initialize(core).lastDsId(id);
     }
 
     function __findCtDsFromTokens(IWithdrawalRouter.Tokens[] calldata tokens, Id id)
