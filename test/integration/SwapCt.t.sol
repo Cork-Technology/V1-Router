@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 
 import {TestBase} from "./../TestBase.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
-import {ICorkSwapAggregator} from "../../src/interfaces/ICorkSwapAggregator.sol";
+import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
@@ -54,8 +54,7 @@ contract SwapCt is TestBase {
         address tokenIn = enableAggregator ? address(randomToken) : address(ra);
         address tokenOut = address(ra);
 
-        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         uint256 tokenInBalanceBefore = balance(tokenIn, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(ct, DEFAULT_ADDRESS);
@@ -88,8 +87,7 @@ contract SwapCt is TestBase {
         uint256 tokenInBalanceBefore = balance(address(ra), DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(ct, DEFAULT_ADDRESS);
 
-        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         (uint256 used, uint256 remaining) =
             router.swapRaForCtExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected);
@@ -116,8 +114,7 @@ contract SwapCt is TestBase {
         address tokenIn = address(ra);
         address tokenOut = enableAggregator ? address(randomToken) : address(ra);
 
-        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountIn);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);
@@ -129,7 +126,7 @@ contract SwapCt is TestBase {
         // use this without aggregator first to get the RA,
         // then we will revert the state so that we can test the aggregator with accurate RA
         snap();
-        ICorkSwapAggregator.AggregatorParams memory mockAggregatorParams = defaultAggregatorParams(tokenIn, tokenIn, 0);
+        ICommon.AggregatorParams memory mockAggregatorParams = defaultAggregatorParams(tokenIn, tokenIn, 0);
         uint256 amountOut = router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0);
         restore();
 
@@ -154,8 +151,7 @@ contract SwapCt is TestBase {
         address tokenIn = address(ra);
         address tokenOut = enableAggregator ? address(randomToken) : address(ra);
 
-        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
-            defaultAggregatorParams(tokenIn, tokenOut, amountOutExpected);
+        ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountOutExpected);
 
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);

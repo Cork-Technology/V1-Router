@@ -17,9 +17,29 @@ import {Constants} from "Cork-Hook/Constants.sol";
 import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
-import {IAbstractAction} from "./interfaces/IAbstractAction.sol";
 
-abstract contract AbstractAction is State, IAbstractAction {
+abstract contract AbstractAction is State {
+    function _validateParams(AggregatorParams memory params) internal view {
+        if (params.enableAggregator) {
+            return;
+        }
+
+        if (params.tokenIn != params.tokenOut) {
+            revert InvalidTokens();
+        }
+    }
+
+    // solidity just straight up refused to work when we overload this
+    function _validateParamsCalldata(AggregatorParams calldata params) internal view {
+        if (params.enableAggregator) {
+            return;
+        }
+
+        if (params.tokenIn != params.tokenOut) {
+            revert InvalidTokens();
+        }
+    }
+
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
@@ -87,6 +107,10 @@ abstract contract AbstractAction is State, IAbstractAction {
         }
     }
 
+    function _getDsId(Id id) internal view returns (uint256) {
+        return Initialize(core).lastDsId(id);
+    }
+
     function __findCtDsFromTokens(IWithdrawalRouter.Tokens[] calldata tokens, Id id)
         internal
         view
@@ -115,8 +139,7 @@ abstract contract AbstractAction is State, IAbstractAction {
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
-        ICorkSwapAggregator.LvRedeemParams memory lvRedeemParams =
-            abi.decode(params, (ICorkSwapAggregator.LvRedeemParams));
+        LvRedeemParams memory lvRedeemParams = abi.decode(params, (LvRedeemParams));
 
         (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, lvRedeemParams.id);
         (address ra, address pa) = __getRaPair(lvRedeemParams.id);
@@ -176,10 +199,7 @@ abstract contract AbstractAction is State, IAbstractAction {
         }
     }
 
-    function _swap(ICorkSwapAggregator.AggregatorParams memory params)
-        internal
-        returns (uint256 amount, address token)
-    {
+    function _swap(AggregatorParams memory params) internal returns (uint256 amount, address token) {
         _transferFromUser(params.tokenIn, params.amountIn);
         (amount, token) = _swapNoTransfer(params);
     }

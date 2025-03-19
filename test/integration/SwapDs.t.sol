@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 
 import {TestBase} from "./../TestBase.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
-import {ICorkSwapAggregator} from "../../src/interfaces/ICorkSwapAggregator.sol";
+import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
@@ -43,7 +43,7 @@ contract SwapDs is TestBase {
     function testFuzzSwapRaForDs(bool enableAggregator) external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+        ICommon.AggregatorParams memory AggregatorParams =
             defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         AggregatorParams.enableAggregator = enableAggregator;
@@ -52,7 +52,7 @@ contract SwapDs is TestBase {
             AggregatorParams.tokenIn = address(ra);
         }
 
-        ICorkSwapAggregator.SwapRaForDsParams memory params = ICorkSwapAggregator.SwapRaForDsParams(
+        ICommon.SwapRaForDsParams memory params = ICommon.SwapRaForDsParams(
             defaultCurrencyId, 1, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), AggregatorParams
         );
 
@@ -81,27 +81,31 @@ contract SwapDs is TestBase {
     function testFuzzSwapDsForRa(bool enableAggregator) external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory AggregatorParams =
+        ICommon.AggregatorParams memory AggregatorParams =
             defaultAggregatorParams(address(ra), address(randomToken), amount);
+
+        if (!enableAggregator) {
+            AggregatorParams.tokenOut = address(ra);
+        }
 
         AggregatorParams.enableAggregator = enableAggregator;
 
         {
-            ICorkSwapAggregator.AggregatorParams memory swapRaParams =
+            ICommon.AggregatorParams memory swapRaParams =
                 defaultAggregatorParams(address(randomToken), address(ra), amount);
 
             if (!enableAggregator) {
                 swapRaParams.tokenIn = address(ra);
             }
 
-            ICorkSwapAggregator.SwapRaForDsParams memory swapRa = ICorkSwapAggregator.SwapRaForDsParams(
+            ICommon.SwapRaForDsParams memory swapRa = ICommon.SwapRaForDsParams(
                 defaultCurrencyId, 1, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), swapRaParams
             );
             IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(swapRa);
         }
 
-        ICorkSwapAggregator.SwapDsForRaParams memory params =
-            ICorkSwapAggregator.SwapDsForRaParams(defaultCurrencyId, 1, amount, 0, AggregatorParams);
+        ICommon.SwapDsForRaParams memory params =
+            ICommon.SwapDsForRaParams(defaultCurrencyId, 1, amount, 0, AggregatorParams);
 
         (address ct, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
         allowFullAllowance(ds, address(router));

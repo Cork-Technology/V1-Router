@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 
 import {TestBase} from "./../TestBase.sol";
 import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
-import {ICorkSwapAggregator} from "../../src/interfaces/ICorkSwapAggregator.sol";
+import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Withdrawal} from "Depeg-swap/contracts/core/Withdrawal.sol";
@@ -40,8 +40,7 @@ contract RedeemLv is TestBase {
     function testRedeemLvExpired() external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -78,7 +77,7 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
+        ICommon.LvRedeemParams memory routerData = ICommon.LvRedeemParams(
             DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 333444370419713515)
         );
 
@@ -97,8 +96,7 @@ contract RedeemLv is TestBase {
     function testRedeemLvActiveSellDs() external {
         uint256 amount = 1e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -119,9 +117,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
-            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0)
-        );
+        ICommon.LvRedeemParams memory routerData =
+            ICommon.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0));
 
         vm.warp(block.timestamp + 3 days);
 
@@ -138,8 +135,7 @@ contract RedeemLv is TestBase {
     function testRedeemLvActiveSellCt() external {
         uint256 amount = 10e18;
 
-        ICorkSwapAggregator.AggregatorParams memory params =
-            defaultAggregatorParams(address(randomToken), address(ra), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         Id id = defaultCurrencyId;
 
@@ -163,9 +159,8 @@ contract RedeemLv is TestBase {
 
         IVault.RedeemEarlyResult memory result = moduleCore.redeemEarlyLv(redeemEarlyParams);
 
-        ICorkSwapAggregator.LvRedeemParams memory routerData = ICorkSwapAggregator.LvRedeemParams(
-            DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0)
-        );
+        ICommon.LvRedeemParams memory routerData =
+            ICommon.LvRedeemParams(DEFAULT_ADDRESS, id, 0, defaultAggregatorParams(address(pa), address(ra), 0));
 
         vm.warp(block.timestamp + 3 days);
 

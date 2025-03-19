@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {State} from "./State.sol";
 import {AbstractAction} from "./AbstractAction.sol";
-import {ICorkSwapAggregator} from "./interfaces/ICorkSwapAggregator.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
@@ -11,10 +10,9 @@ import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
-    function depositPsm(ICorkSwapAggregator.AggregatorParams calldata params, Id id)
-        external
-        returns (uint256 received)
-    {
+    function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received) {
+        _validateParams(params);
+
         address token;
         (received, token) = _swap(params);
 
@@ -23,14 +21,16 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (received,) = _psm().depositPsm(id, received);
 
         _transferAllCtDsToUser(id);
+
+        emit DepositPsm(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
 
-    function depositLv(
-        ICorkSwapAggregator.AggregatorParams calldata params,
-        Id id,
-        uint256 raTolerance,
-        uint256 ctTolerance
-    ) external returns (uint256 received) {
+    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
+        external
+        returns (uint256 received)
+    {
+        _validateParams(params);
+
         address token;
         (received, token) = _swap(params);
 
@@ -38,41 +38,54 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         received = _vault().depositLv(id, received, raTolerance, ctTolerance);
 
         _transferAllLvToUser(id);
+
+        emit DepositLv(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
 
     function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
         _handleLvRedeem(tokens, routerData);
     }
 
-    function repurchase(ICorkSwapAggregator.AggregatorParams calldata params, Id id, uint256 amount)
+    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
         external
-        returns (
-            uint256 dsId,
-            uint256 receivedPa,
-            uint256 receivedDs,
-            uint256 feePercentage,
-            uint256 fee,
-            uint256 exchangeRates
-        )
+        returns (RepurchaseReturn memory result)
     {
+        _validateParams(params);
+
         address token;
         (amount, token) = _swap(params);
 
         _increaseAllowanceForProtocol(token, amount);
 
-        (dsId, receivedPa, receivedDs, feePercentage, fee, exchangeRates) = _psm().repurchase(id, amount);
+        (result.dsId, result.receivedPa, result.receivedDs, result.feePercentage, result.fee, result.exchangeRates) =
+            _psm().repurchase(id, amount);
 
         (, address ds) = __getCtDs(id);
         (, address pa) = __getRaPair(id);
 
         _transferToUser(ds, _contractBalance(ds));
         _transferToUser(pa, _contractBalance(pa));
+
+        emit Repurchase(
+            _msgSender(),
+            params.tokenIn,
+            params.amountIn,
+            id,
+            result.dsId,
+            result.receivedPa,
+            result.receivedDs,
+            result.feePercentage,
+            result.fee,
+            result.exchangeRates
+        );
     }
 
-    function swapRaForDs(ICorkSwapAggregator.SwapRaForDsParams calldata params)
+    function swapRaForDs(SwapRaForDsParams calldata params)
         external
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
+        _validateParamsCalldata(params.inputTokenAggregatorParams);
+
         (uint256 amount, address token) = _swap(params.inputTokenAggregatorParams);
 
         _increaseAllowanceForRouter(token, amount);
@@ -85,9 +98,28 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         // we transfer both refunded ct and ds tokens
         _transferToUser(ct, _contractBalance(ct));
         _transferToUser(ds, _contractBalance(ds));
+
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.RaForDs,
+                tokenIn: params.inputTokenAggregatorParams.tokenIn,
+                amountIn: params.inputTokenAggregatorParams.amountIn,
+                tokenOut: ds,
+                amountOut: _contractBalance(ds),
+                id: params.id,
+                dsId: params.dsId,
+                minOutput: params.amountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: amount
+            })
+        );
     }
 
-    function swapDsForRa(ICorkSwapAggregator.SwapDsForRaParams memory params) external returns (uint256 amountOut) {
+    function swapDsForRa(SwapDsForRaParams memory params) external returns (uint256 amountOut) {
+        _validateParams(params.raAggregatorParams);
+
         (, address ds) = __getCtDs(params.id);
 
         _transferFromUser(ds, params.amount);
@@ -102,29 +134,69 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (amountOut, token) = _swapNoTransfer(params.raAggregatorParams);
 
         _transferToUser(token, _contractBalance(token));
+
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.DsForRa,
+                tokenIn: ds,
+                amountIn: params.amount,
+                tokenOut: token,
+                amountOut: amountOut,
+                id: params.id,
+                dsId: params.dsId,
+                minOutput: params.raAmountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: params.amount
+            })
+        );
     }
 
-    function swapRaForCtExactIn(ICorkSwapAggregator.AggregatorParams calldata params, Id id, uint256 amountOutMin)
+    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
         external
         returns (uint256 amountOut)
     {
+        _validateParams(params);
+
         (uint256 amount,) = _swap(params);
 
         address ct;
 
         (amountOut, ct) = _swap(id, true, true, amount);
 
+        uint256 dsId = _getDsId(id);
+
         if (amountOut < amountOutMin) revert Slippage();
 
         _transferToUser(ct, amountOut);
+
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.RaForCtExactIn,
+                tokenIn: params.tokenIn,
+                amountIn: params.amountIn,
+                tokenOut: ct,
+                amountOut: amountOut,
+                id: id,
+                dsId: dsId,
+                minOutput: amountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: amount
+            })
+        );
     }
 
     // we don't have an explicit slippage protection(max amount in) since the amount out we get from the aggregator swap(if any)s
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
-    function swapRaForCtExactOut(ICorkSwapAggregator.AggregatorParams calldata params, Id id, uint256 amountOut)
+    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
         external
         returns (uint256 used, uint256 remaining)
     {
+        _validateParams(params);
+
         // we expect ra to come out from this
         (uint256 initial, address ra) = _swap(params);
 
@@ -142,14 +214,34 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         // we use token out here since the token out is expected to be the target RA
         _transferToUser(ra, remaining);
+
+        uint256 dsId = _getDsId(id);
+
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.RaForCtExactOut,
+                tokenIn: params.tokenIn,
+                amountIn: initial,
+                tokenOut: ct,
+                amountOut: amountOut,
+                id: id,
+                dsId: dsId,
+                minOutput: 0,
+                // since we allow all the RA
+                maxInput: initial,
+                unused: remaining,
+                used: used
+            })
+        );
     }
 
-    function swapCtForRaExactIn(
-        ICorkSwapAggregator.AggregatorParams memory params,
-        Id id,
-        uint256 ctAmount,
-        uint256 raAmountOutMin
-    ) external returns (uint256 amountOut) {
+    function swapCtForRaExactIn(AggregatorParams memory params, Id id, uint256 ctAmount, uint256 raAmountOutMin)
+        external
+        returns (uint256 amountOut)
+    {
+        _validateParams(params);
+
         (address ct,) = __getCtDs(id);
         _transferFromUser(ct, ctAmount);
 
@@ -174,16 +266,33 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         _transferToUser(tokenOut, amountOut);
         // transfer any unused ra
         _transferToUser(ra, _contractBalance(ra));
+
+        uint256 dsId = _getDsId(id);
+
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.CtForRaExactIn,
+                tokenIn: ct,
+                amountIn: ctAmount,
+                tokenOut: tokenOut,
+                amountOut: amountOut,
+                id: id,
+                dsId: dsId,
+                minOutput: raAmountOutMin,
+                maxInput: 0,
+                unused: 0,
+                used: ctAmount
+            })
+        );
     }
 
-    // TODO : move all to interface and give accurate explanation
-    // TODO : add events for all actions
-    function swapCtForRaExactOut(
-        ICorkSwapAggregator.AggregatorParams memory params,
-        Id id,
-        uint256 rAmountOut,
-        uint256 amountInMax
-    ) external returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut) {
+    function swapCtForRaExactOut(AggregatorParams memory params, Id id, uint256 rAmountOut, uint256 amountInMax)
+        external
+        returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut)
+    {
+        _validateParams(params);
+
         (address ct,) = __getCtDs(id);
 
         // we transfer the max amount first, and we will give back the unused ct later
@@ -214,14 +323,36 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         ctRemaining = _contractBalance(ct);
         // transfer any unused ct
         _transferToUser(ct, ctRemaining);
+
+        uint256 dsId = _getDsId(id);
+
+        _emitSwapEvent(
+            SwapEventParams({
+                sender: _msgSender(),
+                swapType: SwapType.CtForRaExactOut,
+                tokenIn: ct,
+                amountIn: amountInMax,
+                tokenOut: tokenOut,
+                amountOut: tokenOutAmountOut,
+                id: id,
+                dsId: dsId,
+                minOutput: 0,
+                maxInput: amountInMax,
+                unused: ctRemaining,
+                used: ctUsed
+            })
+        );
     }
 
     function redeemRaWithDsPa(
-        ICorkSwapAggregator.AggregatorParams calldata zapInParams,
-        ICorkSwapAggregator.AggregatorParams memory zapOutParams,
+        AggregatorParams calldata zapInParams,
+        AggregatorParams memory zapOutParams,
         Id id,
         uint256 dsMaxIn
     ) external returns (uint256 dsUsed, uint256 outAmount) {
+        _validateParamsCalldata(zapInParams);
+        _validateParams(zapOutParams);
+
         (, address ds) = __getCtDs(id);
 
         (uint256 amount, address pa) = _swap(zapInParams);
@@ -233,11 +364,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         uint256 dsId = Initialize(core).lastDsId(id);
 
-        (uint256 received,,, uint256 used) = _psm().redeemRaWithDsPa(id, dsId, amount);
-
-        dsUsed = used;
-
-        zapOutParams.amountIn = received;
+        (zapOutParams.amountIn,,, dsUsed) = _psm().redeemRaWithDsPa(id, dsId, amount);
 
         address outToken;
         (outAmount, outToken) = _swap(zapOutParams);
@@ -246,5 +373,24 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         // transfer unused DS
         _transferToUser(ds, _contractBalance(ds));
+
+        emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
+    }
+
+    function _emitSwapEvent(SwapEventParams memory params) internal {
+        emit Swap(
+            params.sender,
+            params.swapType,
+            params.tokenIn,
+            params.amountIn,
+            params.tokenOut,
+            params.amountOut,
+            params.id,
+            params.dsId,
+            params.minOutput,
+            params.maxInput,
+            params.unused,
+            params.used
+        );
     }
 }
