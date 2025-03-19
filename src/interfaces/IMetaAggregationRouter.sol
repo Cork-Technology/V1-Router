@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
-interface MetaAggregationRouterV2 {
+interface IMetaAggregationRouterV2 {
     struct SwapDescriptionV2 {
         address srcToken;
         address dstToken;

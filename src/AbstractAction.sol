@@ -100,7 +100,7 @@ abstract contract AbstractAction is State {
     {
         if (params.enableAggregator) {
             _increaseAllowance(params.tokenIn, params.extRouter, params.amountIn);
-            return (ICorkSwapAggregator(params.extRouter).swap(params, _msgSender()), params.tokenOut);
+            return (ICorkSwapAggregator(params.extRouter).swap(params), params.tokenOut);
         } else {
             amount = params.amountIn;
             token = params.tokenIn;

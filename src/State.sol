@@ -7,9 +7,10 @@ import {ICorkHook} from "Cork-Hook/interfaces/ICorkHook.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {ICommon} from "./interfaces/ICommon.sol";
 
-abstract contract State is OwnableUpgradeable, UUPSUpgradeable, ICommon {
+abstract contract State is ReentrancyGuardTransient, OwnableUpgradeable, UUPSUpgradeable, ICommon {
     address public core;
     address public flashSwapRouter;
     address public hook;

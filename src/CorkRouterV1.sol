@@ -10,7 +10,7 @@ import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
-    function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received) {
+    function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
         _validateParams(params);
 
         address token;
@@ -27,6 +27,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
         external
+        nonReentrant
         returns (uint256 received)
     {
         _validateParams(params);
@@ -42,12 +43,16 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         emit DepositLv(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
 
-    function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData) external {
+    function route(address, IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata routerData)
+        external
+        nonReentrant
+    {
         _handleLvRedeem(tokens, routerData);
     }
 
     function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
         external
+        nonReentrant
         returns (RepurchaseReturn memory result)
     {
         _validateParams(params);
@@ -82,6 +87,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     function swapRaForDs(SwapRaForDsParams calldata params)
         external
+        nonReentrant
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
         _validateParamsCalldata(params.inputTokenAggregatorParams);
@@ -117,7 +123,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
-    function swapDsForRa(SwapDsForRaParams memory params) external returns (uint256 amountOut) {
+    function swapDsForRa(SwapDsForRaParams memory params) external nonReentrant returns (uint256 amountOut) {
         _validateParams(params.raAggregatorParams);
 
         (, address ds) = __getCtDs(params.id);
@@ -155,6 +161,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
         external
+        nonReentrant
         returns (uint256 amountOut)
     {
         _validateParams(params);
@@ -193,6 +200,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
     function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
         external
+        nonReentrant
         returns (uint256 used, uint256 remaining)
     {
         _validateParams(params);
@@ -238,6 +246,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     function swapCtForRaExactIn(AggregatorParams memory params, Id id, uint256 ctAmount, uint256 raAmountOutMin)
         external
+        nonReentrant
         returns (uint256 amountOut)
     {
         _validateParams(params);
@@ -289,6 +298,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     function swapCtForRaExactOut(AggregatorParams memory params, Id id, uint256 rAmountOut, uint256 amountInMax)
         external
+        nonReentrant
         returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut)
     {
         _validateParams(params);
@@ -349,7 +359,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         AggregatorParams memory zapOutParams,
         Id id,
         uint256 dsMaxIn
-    ) external returns (uint256 dsUsed, uint256 outAmount) {
+    ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
         _validateParamsCalldata(zapInParams);
         _validateParams(zapOutParams);
 

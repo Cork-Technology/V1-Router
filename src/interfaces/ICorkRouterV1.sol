@@ -3,18 +3,17 @@ pragma solidity 0.8.26;
 
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {ICommon} from "./ICommon.sol";
-import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRouter.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
 interface ICorkRouterV1 is ICommon {
     struct SwapEventParams {
         address sender;
-        SwapType swapType;
         address tokenIn;
-        uint256 amountIn;
         address tokenOut;
-        uint256 amountOut;
+        SwapType swapType;
         Id id;
+        uint256 amountIn;
+        uint256 amountOut;
         uint256 dsId;
         uint256 minOutput;
         uint256 maxInput;
