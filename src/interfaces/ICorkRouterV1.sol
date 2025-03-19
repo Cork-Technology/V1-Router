@@ -7,23 +7,38 @@ import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRout
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 
 interface ICorkRouterV1 is ICommon {
-    function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received);
+    struct SwapEventParams {
+        address sender;
+        SwapType swapType;
+        address tokenIn;
+        uint256 amountIn;
+        address tokenOut;
+        uint256 amountOut;
+        Id id;
+        uint256 dsId;
+        uint256 minOutput;
+        uint256 maxInput;
+        uint256 unused;
+        uint256 used;
+    }
+
+    // Enum for swap types
+    enum SwapType {
+        RaForDs,
+        DsForRa,
+        RaForCtExactIn,
+        RaForCtExactOut,
+        CtForRaExactIn,
+        CtForRaExactOut
+    }
 
     // Event for depositPsm function
     event DepositPsm(
         address indexed caller, address inputToken, uint256 inputAmount, Id indexed id, uint256 ctDsReceived
     );
 
-    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
-        external
-        returns (uint256 received);
-
     // Event for depositLv function
     event DepositLv(address indexed caller, address inputToken, uint256 inputAmount, Id indexed id, uint256 lvReceived);
-
-    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
-        external
-        returns (RepurchaseReturn memory result);
 
     // Event for repurchase function
     event Repurchase(
@@ -38,16 +53,6 @@ interface ICorkRouterV1 is ICommon {
         uint256 fee,
         uint256 exchangeRates
     );
-
-    // Enum for swap types
-    enum SwapType {
-        RaForDs,
-        DsForRa,
-        RaForCtExactIn,
-        RaForCtExactOut,
-        CtForRaExactIn,
-        CtForRaExactOut
-    }
 
     // Unified Swap event for all swap functions
     event Swap(
@@ -64,6 +69,30 @@ interface ICorkRouterV1 is ICommon {
         uint256 unused,
         uint256 used
     );
+
+    // Event for redeemRaWithDsPa function
+    event RedeemRaWithDsPa(
+        address indexed caller,
+        address paToken,
+        uint256 paAmount,
+        address dsToken,
+        uint256 dsMaxIn,
+        Id indexed id,
+        uint256 indexed dsId,
+        address outputToken,
+        uint256 dsUsed,
+        uint256 outAmount
+    );
+
+    function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received);
+
+    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
+        external
+        returns (uint256 received);
+
+    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
+        external
+        returns (RepurchaseReturn memory result);
 
     function swapRaForDs(SwapRaForDsParams calldata params)
         external
@@ -93,18 +122,4 @@ interface ICorkRouterV1 is ICommon {
         Id id,
         uint256 dsMaxIn
     ) external returns (uint256 dsUsed, uint256 outAmount);
-
-    // Event for redeemRaWithDsPa function
-    event RedeemRaWithDsPa(
-        address indexed caller,
-        address paToken,
-        uint256 paAmount,
-        address dsToken,
-        uint256 dsMaxIn,
-        Id indexed id,
-        uint256 indexed dsId,
-        address outputToken,
-        uint256 dsUsed,
-        uint256 outAmount
-    );
 }

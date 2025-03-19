@@ -377,21 +377,6 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
     }
 
-    struct SwapEventParams {
-        address sender;
-        SwapType swapType;
-        address tokenIn;
-        uint256 amountIn;
-        address tokenOut;
-        uint256 amountOut;
-        Id id;
-        uint256 dsId;
-        uint256 minOutput;
-        uint256 maxInput;
-        uint256 unused;
-        uint256 used;
-    }
-
     function _emitSwapEvent(SwapEventParams memory params) internal {
         emit Swap(
             params.sender,
