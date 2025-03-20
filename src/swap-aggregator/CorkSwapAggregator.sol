@@ -21,7 +21,12 @@ contract CorkSwapAggregator is ReentrancyGuardTransient, ICorkSwapAggregator {
         KYBER_ROUTER = _kyberRouter;
     }
 
-    function swap(AggregatorParams calldata params) external override nonReentrant returns (uint256 amountOut) {
+    function swap(AggregatorParams calldata params, address caller)
+        external
+        override
+        nonReentrant
+        returns (uint256 amountOut)
+    {
         // Transfer tokens from sender to this contract
         params.tokenIn.safeTransferFrom(msg.sender, address(this), params.amountIn);
 
