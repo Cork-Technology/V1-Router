@@ -581,7 +581,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (zapOutParams.amountIn,,, dsUsed) = _psm().redeemRaWithDsPa(id, dsId, amount);
 
         address outToken;
-        (outAmount, outToken) = _swap(zapOutParams, false);
+        (outAmount, outToken) = _swapNoTransfer(zapOutParams);
 
         _transferToUser(outToken, _contractBalance(outToken));
 
