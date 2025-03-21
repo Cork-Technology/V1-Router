@@ -5,8 +5,14 @@ import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
 import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IAllowanceTransfer} from "permit2/interfaces/IAllowanceTransfer.sol";
+import {ICorkRouterV1} from "../../src/interfaces/ICorkRouterV1.sol";
+import {SigUtil} from "../utils/SigUtil.sol";
 
-contract Repurchase is TestBase {
+contract Repurchase is TestBase, SigUtil {
+    uint256 internal USER_KEY = 1;
+    address internal user = vm.rememberKey(USER_KEY);
+
     DummyWETH internal ra;
     DummyWETH internal pa;
     DummyWETH internal randomToken;
@@ -83,6 +89,57 @@ contract Repurchase is TestBase {
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
+
+        assertEq(amount, dsBalanceAfter - dsBalanceBefore);
+        assertEq(amount, paBalanceAfter - paBalanceBefore);
+    }
+
+    function testRepurchaseWithPermit() public {
+        // for simplicity sake
+        corkConfig.updateRepurchaseFeeRate(defaultCurrencyId, 0);
+
+        vm.startPrank(DEFAULT_ADDRESS);
+        uint256 amount = 1e18;
+        Id id = defaultCurrencyId;
+
+        randomToken.transfer(user, amount);
+
+        // We need to prepare the system first - using the normal account to create DS
+        router.depositPsm(defaultAggregatorParams(address(randomToken), address(ra), amount), defaultCurrencyId);
+
+        (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
+
+        allowFullAllowance(ds, address(moduleCore));
+        moduleCore.redeemRaWithDsPa(defaultCurrencyId, 1, amount);
+        vm.stopPrank();
+
+        // Now back to testing with the user
+        vm.startPrank(user);
+        randomToken.approve(address(permit2), amount);
+        ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
+
+        // Create a PermitSingle for the token approval
+        IAllowanceTransfer.PermitSingle memory permit = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: params.tokenIn,
+                amount: uint160(params.amountIn),
+                expiration: uint48(block.timestamp + 1 hours),
+                nonce: 0 // Assuming first use of this nonce
+            }),
+            spender: address(router),
+            sigDeadline: uint256(block.timestamp + 1 hours)
+        });
+
+        // Generate signature for permit2
+        bytes memory signature = signPermit2(permit, USER_KEY, address(permit2));
+
+        uint256 dsBalanceBefore = IERC20(ds).balanceOf(user);
+        uint256 paBalanceBefore = pa.balanceOf(user);
+
+        router.repurchase(params, id, amount, permit, signature);
+
+        uint256 dsBalanceAfter = IERC20(ds).balanceOf(user);
+        uint256 paBalanceAfter = pa.balanceOf(user);
 
         assertEq(amount, dsBalanceAfter - dsBalanceBefore);
         assertEq(amount, paBalanceAfter - paBalanceBefore);

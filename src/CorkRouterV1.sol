@@ -8,13 +8,30 @@ import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRout
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
+import {IPermit2} from "permit2/interfaces/IPermit2.sol";
 
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
     function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
+        return _depositPsm(params, id, false);
+    }
+
+    function depositPsm(
+        AggregatorParams calldata params,
+        Id id,
+        IPermit2.PermitSingle calldata permit,
+        bytes calldata signature
+    ) external nonReentrant returns (uint256 received) {
+        // Process permit first to get token approval
+        _permit2().permit(_msgSender(), permit, signature);
+
+        return _depositPsm(params, id, true);
+    }
+
+    function _depositPsm(AggregatorParams calldata params, Id id, bool usePermit) internal returns (uint256 received) {
         _validateParams(params);
 
         address token;
-        (received, token) = _swap(params);
+        (received, token) = _swap(params, usePermit);
 
         _increaseAllowanceForProtocol(token, received);
 
@@ -30,10 +47,32 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         nonReentrant
         returns (uint256 received)
     {
+        return _depositLv(params, id, raTolerance, ctTolerance, false);
+    }
+
+    function depositLv(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 raTolerance,
+        uint256 ctTolerance,
+        IPermit2.PermitSingle calldata permit,
+        bytes calldata signature
+    ) external nonReentrant returns (uint256 received) {
+        _permit2().permit(_msgSender(), permit, signature);
+        return _depositLv(params, id, raTolerance, ctTolerance, true);
+    }
+
+    function _depositLv(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 raTolerance,
+        uint256 ctTolerance,
+        bool usePermit
+    ) internal returns (uint256 received) {
         _validateParams(params);
 
         address token;
-        (received, token) = _swap(params);
+        (received, token) = _swap(params, usePermit);
 
         _increaseAllowanceForProtocol(token, received);
         received = _vault().depositLv(id, received, raTolerance, ctTolerance);
@@ -55,10 +94,28 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         nonReentrant
         returns (RepurchaseReturn memory result)
     {
+        return _repurchase(params, id, amount, false);
+    }
+
+    function repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        IPermit2.PermitSingle calldata permit,
+        bytes calldata signature
+    ) external nonReentrant returns (RepurchaseReturn memory result) {
+        _permit2().permit(_msgSender(), permit, signature);
+        return _repurchase(params, id, amount, true);
+    }
+
+    function _repurchase(AggregatorParams calldata params, Id id, uint256 amount, bool usePermit)
+        internal
+        returns (RepurchaseReturn memory result)
+    {
         _validateParams(params);
 
         address token;
-        (amount, token) = _swap(params);
+        (amount, token) = _swap(params, usePermit);
 
         _increaseAllowanceForProtocol(token, amount);
 
@@ -92,7 +149,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     {
         _validateParamsCalldata(params.inputTokenAggregatorParams);
 
-        (uint256 amount, address token) = _swap(params.inputTokenAggregatorParams);
+        (uint256 amount, address token) = _swap(params.inputTokenAggregatorParams, false);
 
         _increaseAllowanceForRouter(token, amount);
         results = _flashSwapRouter().swapRaforDs(
@@ -166,7 +223,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     {
         _validateParams(params);
 
-        (uint256 amount,) = _swap(params);
+        (uint256 amount,) = _swap(params, false);
 
         address ct;
 
@@ -206,7 +263,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         _validateParams(params);
 
         // we expect ra to come out from this
-        (uint256 initial, address ra) = _swap(params);
+        (uint256 initial, address ra) = _swap(params, false);
 
         address ct;
         (amountOut, ct) = _swap(id, true, false, amountOut);
@@ -365,7 +422,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         (, address ds) = __getCtDs(id);
 
-        (uint256 amount, address pa) = _swap(zapInParams);
+        (uint256 amount, address pa) = _swap(zapInParams, false);
 
         _transferFromUser(ds, dsMaxIn);
 
@@ -377,7 +434,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (zapOutParams.amountIn,,, dsUsed) = _psm().redeemRaWithDsPa(id, dsId, amount);
 
         address outToken;
-        (outAmount, outToken) = _swap(zapOutParams);
+        (outAmount, outToken) = _swap(zapOutParams, false);
 
         _transferToUser(outToken, _contractBalance(outToken));
 

@@ -44,6 +44,10 @@ abstract contract AbstractAction is State {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
     }
 
+    function _transferFromUserWithPermit(address token, uint256 amount) internal {
+        _permit2().transferFrom(msg.sender, address(this), uint160(amount), token);
+    }
+
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
         _increaseAllowance(token, core, amount);
     }
@@ -199,8 +203,12 @@ abstract contract AbstractAction is State {
         }
     }
 
-    function _swap(AggregatorParams memory params) internal returns (uint256 amount, address token) {
-        _transferFromUser(params.tokenIn, params.amountIn);
+    function _swap(AggregatorParams memory params, bool usePermit) internal returns (uint256 amount, address token) {
+        if (usePermit) {
+            _transferFromUserWithPermit(params.tokenIn, params.amountIn);
+        } else {
+            _transferFromUser(params.tokenIn, params.amountIn);
+        }
         (amount, token) = _swapNoTransfer(params);
     }
 
