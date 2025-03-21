@@ -6,12 +6,8 @@ import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAllowanceTransfer} from "permit2/interfaces/IAllowanceTransfer.sol";
-import {SigUtil} from "../utils/SigUtil.sol";
 
-contract Deposit is TestBase, SigUtil {
-    uint256 internal USER_KEY = 1;
-    address internal user = vm.rememberKey(USER_KEY);
-
+contract Deposit is TestBase {
     DummyWETH internal ra;
     DummyWETH internal randomToken;
 
@@ -91,8 +87,8 @@ contract Deposit is TestBase, SigUtil {
         assertEq(ra.balanceOf(address(router)), 0);
 
         (address ct, address ds) = moduleCore.swapAsset(id, 1);
-        assertEq(IERC20(ct).balanceOf(address(router)), 0);
-        assertEq(IERC20(ds).balanceOf(address(router)), 0);
+        _verifyNoFunds(ct, address(router));
+        _verifyNoFunds(ds, address(router));
 
         // verify that we receive ct and ds
         assertEq(IERC20(ct).balanceOf(DEFAULT_ADDRESS), received);
@@ -114,8 +110,8 @@ contract Deposit is TestBase, SigUtil {
         uint256 received = router.depositLv(params, id, 0, 0);
 
         // verify that router has no funds
-        assertEq(ra.balanceOf(address(router)), 0);
-        assertEq(IERC20(randomToken).balanceOf(address(router)), 0);
+        _verifyNoFunds(ra, address(router));
+        _verifyNoFunds(randomToken, address(router));
 
         // verify that we receive lv`
         address lv = moduleCore.lvAsset(id);
@@ -137,28 +133,18 @@ contract Deposit is TestBase, SigUtil {
         Id id = defaultCurrencyId;
 
         // Create a PermitSingle for the token approval
-        IAllowanceTransfer.PermitSingle memory permit = IAllowanceTransfer.PermitSingle({
-            details: IAllowanceTransfer.PermitDetails({
-                token: params.tokenIn,
-                amount: uint160(params.amountIn),
-                expiration: uint48(block.timestamp + 1 hours),
-                nonce: 0 // Assuming first use of this nonce
-            }),
-            spender: address(router),
-            sigDeadline: uint256(block.timestamp + 1 hours)
-        });
-
-        // Signature generation for permit2
-        bytes memory signature = signPermit2(permit, USER_KEY, address(permit2));
+        (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) =
+            createPermitAndSignature(params.tokenIn, params.amountIn, address(router), USER_KEY, address(permit2));
 
         uint256 received = router.depositPsm(params, id, permit, signature);
 
         // verify that router has no funds
-        assertEq(ra.balanceOf(address(router)), 0);
+        _verifyNoFunds(ra, address(router));
+        _verifyNoFunds(randomToken, address(router));
 
         (address ct, address ds) = moduleCore.swapAsset(id, 1);
-        assertEq(IERC20(ct).balanceOf(address(router)), 0);
-        assertEq(IERC20(ds).balanceOf(address(router)), 0);
+        _verifyNoFunds(ct, address(router));
+        _verifyNoFunds(ds, address(router));
 
         // verify that we receive ct and ds
         assertEq(IERC20(ct).balanceOf(user), received);
@@ -196,8 +182,8 @@ contract Deposit is TestBase, SigUtil {
         uint256 received = router.depositLv(params, id, 0, 0, permit, signature);
 
         // verify that router has no funds
-        assertEq(ra.balanceOf(address(router)), 0);
-        assertEq(IERC20(randomToken).balanceOf(address(router)), 0);
+        _verifyNoFunds(ra, address(router));
+        _verifyNoFunds(randomToken, address(router));
 
         // verify that we receive lv tokens
         address lv = moduleCore.lvAsset(id);

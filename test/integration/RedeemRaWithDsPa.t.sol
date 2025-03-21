@@ -8,6 +8,7 @@ import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
+import {IAllowanceTransfer} from "permit2/interfaces/IAllowanceTransfer.sol";
 
 contract RedeemRaWithDsPa is TestBase {
     DummyWETH internal ra;
@@ -85,4 +86,72 @@ contract RedeemRaWithDsPa is TestBase {
         assertEq(dsBalanceBefore - dsBalanceAfter, dsUsed);
         assertEq(zapOutBalanceAfter - zapOutBalanceBefore, outAmount);
     }
+
+    // function testFuzzRedeemRaWithDsPermit(bool enableZapIn, bool enableZapOut) external {
+    //     vm.startPrank(DEFAULT_ADDRESS);
+    //     randomToken.transfer(user, 10 ether);
+    //     randomToken2.transfer(user, 10 ether);
+    //     pa.transfer(user, 10 ether);
+
+    //     // Also transfer some DS tokens to the user
+    //     (address ct, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
+    //     router.depositPsm(defaultAggregatorParams(address(randomToken), address(ra), 5 ether), defaultCurrencyId);
+    //     IERC20(ds).transfer(user, IERC20(ds).balanceOf(DEFAULT_ADDRESS));
+
+    //     // remove the fee so that we can get accurate results
+    //     corkConfig.updatePsmBaseRedemptionFeePercentage(defaultCurrencyId, 0);
+    //     vm.stopPrank();
+
+    //     vm.startPrank(user);
+    //     // Approve tokens to Permit2
+    //     uint256 amount = 0.1 ether;
+    //     IERC20(ds).approve(address(permit2), amount + 4 ether);
+    //     randomToken.approve(address(permit2), amount);
+    //     pa.approve(address(permit2), amount);
+
+    //     address zapOutOutputToken = enableZapOut ? address(randomToken2) : address(ra);
+
+    //     uint256 dsBalanceBefore = IERC20(ds).balanceOf(user);
+    //     uint256 zapOutBalanceBefore = balance(zapOutOutputToken, user);
+
+    //     IAllowanceTransfer.PermitBatch memory permit;
+    //     bytes memory signature;
+    //     {
+    //         // Setup batch permit for DS and input token
+    //         address[] memory tokens = new address[](2);
+    //         uint256[] memory amounts = new uint256[](2);
+    //         tokens[0] = ds;
+    //         tokens[1] = enableZapIn ? address(randomToken) : address(pa);
+    //         amounts[0] = amount + 4 ether; // DS amount
+    //         amounts[1] = amount; // Input token amount
+
+    //         (permit, signature) =
+    //             createBatchPermitAndSignature(tokens, amounts, address(router), USER_KEY, address(permit2));
+    //     }
+
+    //     {
+    //         ICommon.AggregatorParams memory zapInParams =
+    //             defaultAggregatorParams(enableZapIn ? address(randomToken) : address(pa), address(pa), amount);
+    //         ICommon.AggregatorParams memory zapOutParams =
+    //             defaultAggregatorParams(address(ra), zapOutOutputToken, amount);
+    //         (uint256 dsUsed, uint256 outAmount) = router.redeemRaWithDsPa(
+    //             zapInParams, zapOutParams, defaultCurrencyId, amount + 4 ether, permit, signature
+    //         );
+
+    //         assertEq(dsUsed, amount);
+    //         assertEq(outAmount, amount);
+    //     }
+
+    //     uint256 dsBalanceAfter = IERC20(ds).balanceOf(user);
+    //     uint256 zapOutBalanceAfter = balance(zapOutOutputToken, user);
+
+    //     assertEq(dsBalanceBefore - dsBalanceAfter, amount);
+    //     assertEq(zapOutBalanceAfter - zapOutBalanceBefore, amount);
+
+    //     // Verify no tokens are left in the router
+    //     _verifyNoFunds(ds, address(router));
+    //     _verifyNoFunds(enableZapIn ? address(randomToken) : address(pa), address(router));
+    //     _verifyNoFunds(zapOutOutputToken, address(router));
+    //     _verifyNoFunds(address(ra), address(router));
+    // }
 }

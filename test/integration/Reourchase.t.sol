@@ -7,12 +7,8 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAllowanceTransfer} from "permit2/interfaces/IAllowanceTransfer.sol";
 import {ICorkRouterV1} from "../../src/interfaces/ICorkRouterV1.sol";
-import {SigUtil} from "../utils/SigUtil.sol";
 
-contract Repurchase is TestBase, SigUtil {
-    uint256 internal USER_KEY = 1;
-    address internal user = vm.rememberKey(USER_KEY);
-
+contract Repurchase is TestBase {
     DummyWETH internal ra;
     DummyWETH internal pa;
     DummyWETH internal randomToken;
@@ -119,19 +115,8 @@ contract Repurchase is TestBase, SigUtil {
         ICommon.AggregatorParams memory params = defaultAggregatorParams(address(randomToken), address(ra), amount);
 
         // Create a PermitSingle for the token approval
-        IAllowanceTransfer.PermitSingle memory permit = IAllowanceTransfer.PermitSingle({
-            details: IAllowanceTransfer.PermitDetails({
-                token: params.tokenIn,
-                amount: uint160(params.amountIn),
-                expiration: uint48(block.timestamp + 1 hours),
-                nonce: 0 // Assuming first use of this nonce
-            }),
-            spender: address(router),
-            sigDeadline: uint256(block.timestamp + 1 hours)
-        });
-
-        // Generate signature for permit2
-        bytes memory signature = signPermit2(permit, USER_KEY, address(permit2));
+        (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) =
+            createPermitAndSignature(params.tokenIn, params.amountIn, address(router), USER_KEY, address(permit2));
 
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(user);
         uint256 paBalanceBefore = pa.balanceOf(user);
