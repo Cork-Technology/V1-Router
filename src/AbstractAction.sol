@@ -17,6 +17,7 @@ import {Constants} from "Cork-Hook/Constants.sol";
 import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 abstract contract AbstractAction is State {
     function _validateParams(AggregatorParams memory params) internal view {
@@ -42,6 +43,10 @@ abstract contract AbstractAction is State {
 
     function _transferFromUser(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
+    }
+
+    function _transferFromUserWithPermit(address token, uint256 amount) internal {
+        _permit2().transferFrom(msg.sender, address(this), SafeCast.toUint160(amount), token);
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
@@ -199,8 +204,12 @@ abstract contract AbstractAction is State {
         }
     }
 
-    function _swap(AggregatorParams memory params) internal returns (uint256 amount, address token) {
-        _transferFromUser(params.tokenIn, params.amountIn);
+    function _swap(AggregatorParams memory params, bool usePermit) internal returns (uint256 amount, address token) {
+        if (usePermit) {
+            _transferFromUserWithPermit(params.tokenIn, params.amountIn);
+        } else {
+            _transferFromUser(params.tokenIn, params.amountIn);
+        }
         (amount, token) = _swapNoTransfer(params);
     }
 

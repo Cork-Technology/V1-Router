@@ -8,12 +8,14 @@ import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRout
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {IPermit2} from "permit2/interfaces/IPermit2.sol";
 import {ICommon} from "./interfaces/ICommon.sol";
 
 abstract contract State is ReentrancyGuardTransient, OwnableUpgradeable, UUPSUpgradeable, ICommon {
     address public core;
     address public flashSwapRouter;
     address public hook;
+    address public permit2;
 
     /// @notice __gap variable to prevent storage collisions
     // slither-disable-next-line unused-state
@@ -23,11 +25,14 @@ abstract contract State is ReentrancyGuardTransient, OwnableUpgradeable, UUPSUpg
         _disableInitializers();
     }
 
-    function initialize(address __core, address __flashSwapRouter, address __hook, address _owner)
+    function initialize(address __core, address __flashSwapRouter, address __hook, address __permit2, address _owner)
         external
         initializer
     {
-        if (__core == address(0) || __flashSwapRouter == address(0) || __hook == address(0) || _owner == address(0)) {
+        if (
+            __core == address(0) || __flashSwapRouter == address(0) || __hook == address(0) || __permit2 == address(0)
+                || _owner == address(0)
+        ) {
             revert ZeroAddress();
         }
         __Ownable_init(_owner);
@@ -35,6 +40,7 @@ abstract contract State is ReentrancyGuardTransient, OwnableUpgradeable, UUPSUpg
         core = __core;
         flashSwapRouter = __flashSwapRouter;
         hook = __hook;
+        permit2 = __permit2;
     }
 
     /// @notice function for UUPS proxy upgrades with owner only access
@@ -55,5 +61,9 @@ abstract contract State is ReentrancyGuardTransient, OwnableUpgradeable, UUPSUpg
 
     function _flashSwapRouter() internal view returns (IDsFlashSwapCore) {
         return IDsFlashSwapCore(flashSwapRouter);
+    }
+
+    function _permit2() internal view returns (IPermit2) {
+        return IPermit2(permit2);
     }
 }

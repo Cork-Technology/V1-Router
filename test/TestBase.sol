@@ -8,12 +8,17 @@ import {CorkRouterV1} from "./../src/CorkRouterV1.sol";
 import {ICorkSwapAggregator} from "../src/interfaces/ICorkSwapAggregator.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Permit2} from "./utils/Permit2Mock.sol";
+import {SigUtil} from "./utils/SigUtil.sol";
 
-contract TestBase is Helper {
+contract TestBase is Helper, SigUtil {
     CorkRouterV1 public router;
     MockAggregator public mockAggregator;
+    Permit2 public permit2;
     address caller;
     uint256 stateId;
+    uint256 public USER_KEY = 1;
+    address public user = vm.rememberKey(USER_KEY);
 
     function initTests() internal {
         vm.startPrank(DEFAULT_ADDRESS);
@@ -22,11 +27,13 @@ contract TestBase is Helper {
 
         mockAggregator = new MockAggregator();
         router = new CorkRouterV1();
-
+        permit2 = new Permit2();
         ERC1967Proxy proxy = new ERC1967Proxy(address(router), "");
         router = CorkRouterV1(address(proxy));
 
-        router.initialize(address(moduleCore), address(flashSwapRouter), address(hook), DEFAULT_ADDRESS);
+        router.initialize(
+            address(moduleCore), address(flashSwapRouter), address(hook), address(permit2), DEFAULT_ADDRESS
+        );
     }
 
     function _recordCallers() internal {
