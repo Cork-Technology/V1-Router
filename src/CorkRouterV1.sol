@@ -11,10 +11,12 @@ import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 import {IPermit2} from "permit2/interfaces/IPermit2.sol";
 
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
+    /// @inheritdoc ICorkRouterV1
     function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
         return _depositPsm(params, id, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function depositPsm(
         AggregatorParams calldata params,
         Id id,
@@ -42,6 +44,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         emit DepositPsm(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
         external
         nonReentrant
@@ -50,6 +53,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _depositLv(params, id, raTolerance, ctTolerance, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function depositLv(
         AggregatorParams calldata params,
         Id id,
@@ -89,6 +93,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         _handleLvRedeem(tokens, routerData);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
         external
         nonReentrant
@@ -97,6 +102,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _repurchase(params, id, amount, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function repurchase(
         AggregatorParams calldata params,
         Id id,
@@ -142,6 +148,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapRaForDs(SwapRaForDsParams calldata params)
         external
         nonReentrant
@@ -150,6 +157,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _swapRaForDs(params, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapRaForDs(
         SwapRaForDsParams calldata params,
         IPermit2.PermitSingle calldata permit,
@@ -196,10 +204,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapDsForRa(SwapDsForRaParams memory params) external nonReentrant returns (uint256 amountOut) {
         return _swapDsForRa(params, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapDsForRa(
         SwapDsForRaParams memory params,
         IPermit2.PermitSingle calldata permit,
@@ -249,6 +259,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
         external
         nonReentrant
@@ -257,6 +268,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _swapRaForCtExactIn(params, id, amountOutMin, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapRaForCtExactIn(
         AggregatorParams calldata params,
         Id id,
@@ -306,6 +318,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
     // we don't have an explicit slippage protection(max amount in) since the amount out we get from the aggregator swap(if any)s
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
+    /// @inheritdoc ICorkRouterV1
     function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
         external
         nonReentrant
@@ -314,6 +327,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _swapRaForCtExactOut(params, id, amountOut, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapRaForCtExactOut(
         AggregatorParams calldata params,
         Id id,
@@ -370,6 +384,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapCtForRaExactIn(AggregatorParams memory params, Id id, uint256 ctAmount, uint256 raAmountOutMin)
         external
         nonReentrant
@@ -378,6 +393,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _swapCtForRaExactIn(params, id, ctAmount, raAmountOutMin, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapCtForRaExactIn(
         AggregatorParams memory params,
         Id id,
@@ -448,6 +464,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapCtForRaExactOut(AggregatorParams memory params, Id id, uint256 rAmountOut, uint256 amountInMax)
         external
         nonReentrant
@@ -456,6 +473,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _swapCtForRaExactOut(params, id, rAmountOut, amountInMax, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function swapCtForRaExactOut(
         AggregatorParams memory params,
         Id id,
@@ -532,6 +550,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         );
     }
 
+    /// @inheritdoc ICorkRouterV1
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
@@ -541,6 +560,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, false);
     }
 
+    /// @inheritdoc ICorkRouterV1
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,

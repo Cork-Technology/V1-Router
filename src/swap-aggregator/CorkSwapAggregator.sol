@@ -6,14 +6,28 @@ import {ICorkSwapAggregator} from "../interfaces/ICorkSwapAggregator.sol";
 import {IMetaAggregationRouterV2} from "../interfaces/IMetaAggregationRouter.sol";
 import {TransferHelper} from "../lib/TransferHelper.sol";
 
+/**
+ * @title CorkSwapAggregator Contract
+ * @dev A swap aggregator contract that facilitates token swaps via KyberSwap's aggregation router.
+ * @author Cork Protocol
+ */
 contract CorkSwapAggregator is ReentrancyGuardTransient, ICorkSwapAggregator {
     using TransferHelper for address;
 
+    /// @notice The address of the KyberSwap router contract
     address public immutable KYBER_ROUTER;
 
-    // KyberSwap flags
+    /**
+     * @notice KyberSwap flag for indicating approval flow
+     * @dev When this flag is set in the swap parameters, the router will use allowance instead of direct transfers
+     */
     uint256 internal constant _APPROVE_FUND = 0x100;
 
+    /**
+     * @notice Initialize the CorkSwapAggregator contract
+     * @param _kyberRouter The address of the KyberSwap router contract
+     * @custom:reverts ZeroAddress If the provided router address is zero
+     */
     constructor(address _kyberRouter) {
         if (_kyberRouter == address(0)) {
             revert ZeroAddress();
@@ -21,6 +35,7 @@ contract CorkSwapAggregator is ReentrancyGuardTransient, ICorkSwapAggregator {
         KYBER_ROUTER = _kyberRouter;
     }
 
+    /// @inheritdoc ICorkSwapAggregator
     function swap(AggregatorParams calldata params, address caller)
         external
         override
