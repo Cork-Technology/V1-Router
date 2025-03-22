@@ -17,6 +17,7 @@ import {Constants} from "Cork-Hook/Constants.sol";
 import {Currency} from "v4-periphery/lib/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-periphery/lib/v4-core/src/types/BalanceDelta.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 abstract contract AbstractAction is State {
     function _validateParams(AggregatorParams memory params) internal view {
@@ -45,7 +46,7 @@ abstract contract AbstractAction is State {
     }
 
     function _transferFromUserWithPermit(address token, uint256 amount) internal {
-        _permit2().transferFrom(msg.sender, address(this), uint160(amount), token);
+        _permit2().transferFrom(msg.sender, address(this), SafeCast.toUint160(amount), token);
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {

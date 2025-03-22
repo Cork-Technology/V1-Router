@@ -165,19 +165,8 @@ contract Deposit is TestBase {
         Id id = defaultCurrencyId;
 
         // Create a PermitSingle for the token approval
-        IAllowanceTransfer.PermitSingle memory permit = IAllowanceTransfer.PermitSingle({
-            details: IAllowanceTransfer.PermitDetails({
-                token: params.tokenIn,
-                amount: uint160(params.amountIn),
-                expiration: uint48(block.timestamp + 1 hours),
-                nonce: 0 // Assuming first use of this nonce
-            }),
-            spender: address(router),
-            sigDeadline: uint256(block.timestamp + 1 hours)
-        });
-
-        // Generate signature for permit2
-        bytes memory signature = signPermit2(permit, USER_KEY, address(permit2));
+        (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) =
+            createPermitAndSignature(params.tokenIn, params.amountIn, address(router), USER_KEY, address(permit2));
 
         uint256 received = router.depositLv(params, id, 0, 0, permit, signature);
 
