@@ -14,29 +14,15 @@ import {IPermit2} from "permit2/interfaces/IPermit2.sol";
  * @title Cork Router V1
  * @notice A router contract that enables users to interact with the Cork Protocol, providing various swapping and deposit functionalities
  * @dev This contract handles deposits, swaps, and redemptions between different token types in the Cork ecosystem
+ * @author Cork Protocol team
  */
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
     /// @inheritdoc ICorkRouterV1
-
-    /**
-     * @notice Deposit tokens into the PSM (Peg Stability Module)
-     * @param params Aggregator parameters containing input token and amount details
-     * @param id The identifier for the Cork pair
-     * @return received The amount of tokens received from the deposit
-     */
     function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
         return _depositPsm(params, id, false);
     }
-    /// @inheritdoc ICorkRouterV1
-    /**
-     * @notice Deposit tokens into the PSM using Permit2 for approval
-     * @param params Aggregator parameters containing input token and amount details
-     * @param id The identifier for the Cork pair
-     * @param permit Permit2 single permit data for token approval
-     * @param signature The signature for the permit
-     * @return received The amount of tokens received from the deposit
-     */
 
+    /// @inheritdoc ICorkRouterV1
     function depositPsm(
         AggregatorParams calldata params,
         Id id,
@@ -63,16 +49,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         emit DepositPsm(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
-    /// @inheritdoc ICorkRouterV1
 
-    /**
-     * @notice Deposit tokens into the Leverage Vault
-     * @param params Aggregator parameters containing input token and amount details
-     * @param id The identifier for the Cork pair
-     * @param raTolerance Slippage tolerance for RA token
-     * @param ctTolerance Slippage tolerance for CT token
-     * @return received The amount of tokens received from the deposit
-     */
+    /// @inheritdoc ICorkRouterV1
     function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
         external
         nonReentrant
@@ -120,15 +98,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     {
         _handleLvRedeem(tokens, routerData);
     }
-    /// @inheritdoc ICorkRouterV1
 
-    /**
-     * @notice Repurchase tokens from the protocol
-     * @param params Aggregator parameters containing input token and amount details
-     * @param id The identifier for the Cork pair
-     * @param amount The amount of tokens to repurchase
-     * @return result A struct containing repurchase details including received amounts and fees
-     */
+    /// @inheritdoc ICorkRouterV1
     function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
         external
         nonReentrant
@@ -182,13 +153,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
             result.exchangeRates
         );
     }
-    /// @inheritdoc ICorkRouterV1
 
-    /**
-     * @notice Swap RA tokens for DS tokens
-     * @param params Parameters for the swap including token details and slippage settings
-     * @return results Detailed information about the swap results
-     */
+    /// @inheritdoc ICorkRouterV1
     function swapRaForDs(SwapRaForDsParams calldata params)
         external
         nonReentrant
@@ -243,13 +209,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
             })
         );
     }
-    /// @inheritdoc ICorkRouterV1
 
-    /**
-     * @notice Swap DS tokens for RA tokens
-     * @param params Parameters for the swap including aggregator details
-     * @return amountOut The amount of tokens received from the swap
-     */
+    /// @inheritdoc ICorkRouterV1
     function swapDsForRa(SwapDsForRaParams memory params) external nonReentrant returns (uint256 amountOut) {
         return _swapDsForRa(params, false);
     }
@@ -303,15 +264,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
             })
         );
     }
-    /// @inheritdoc ICorkRouterV1
 
-    /**
-     * @notice Swap RA tokens for CT tokens with exact input amount
-     * @param params Aggregator parameters containing input token and amount details
-     * @param id The identifier for the Cork pair
-     * @param amountOutMin Minimum amount of CT tokens to receive
-     * @return amountOut The amount of CT tokens received
-     */
+    /// @inheritdoc ICorkRouterV1
     function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
         external
         nonReentrant
@@ -371,14 +325,6 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     // we don't have an explicit slippage protection(max amount in) since the amount out we get from the aggregator swap(if any)s
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
     /// @inheritdoc ICorkRouterV1
-    /**
-     * @notice Swap RA tokens for CT tokens with exact output amount
-     * @param params Aggregator parameters containing input token and amount details
-     * @param id The identifier for the Cork pair
-     * @param amountOut The exact amount of CT tokens to receive
-     * @return used Amount of input tokens used in the swap
-     * @return remaining Amount of input tokens not used and returned to user
-     */
     function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
         external
         nonReentrant
@@ -454,17 +400,6 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    /**
-     * @notice Swap an exact amount of CT tokens for RA tokens using Permit2 for approval
-     * @dev Uses Permit2 for token approvals, eliminating the need for a separate approve transaction
-     * @param params Aggregator parameters for the swap
-     * @param id The identifier for the Cork pair
-     * @param ctAmount The exact amount of CT tokens you want to swap
-     * @param raAmountOutMin The minimum amount of RA tokens you're willing to accept (slippage protection)
-     * @param permit The Permit2 permit data for token approval
-     * @param signature The signature for the Permit2 permit
-     * @return amountOut The actual amount of tokens received from the swap
-     */
     function swapCtForRaExactIn(
         AggregatorParams memory params,
         Id id,
@@ -545,19 +480,6 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    /**
-     * @notice Swap CT tokens for RA tokens with exact output amount using Permit2 for approval
-     * @dev This function uses Permit2 for token approvals, saving users an extra transaction
-     * @param params Aggregator parameters for the swap
-     * @param id The identifier for the Cork pair
-     * @param rAmountOut The exact amount of RA tokens you want to receive
-     * @param amountInMax The maximum amount of CT tokens you're willing to spend
-     * @param permit The Permit2 permit data for token approval
-     * @param signature The signature for the Permit2 permit
-     * @return ctUsed The actual amount of CT tokens used in the swap
-     * @return ctRemaining The amount of unused CT tokens that will be returned to you
-     * @return tokenOutAmountOut The final amount of output tokens received after the swap
-     */
     function swapCtForRaExactOut(
         AggregatorParams memory params,
         Id id,
@@ -633,17 +555,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
             })
         );
     }
-    /// @inheritdoc ICorkRouterV1
-    /**
-     * @notice Redeem RA tokens using both DS and PA tokens
-     * @param zapInParams Parameters for the initial token conversion
-     * @param zapOutParams Parameters for the final token conversion
-     * @param id The identifier for the Cork pair
-     * @param dsMaxIn Maximum amount of DS tokens to use
-     * @return dsUsed Amount of DS tokens actually used
-     * @return outAmount Amount of output tokens received
-     */
 
+    /// @inheritdoc ICorkRouterV1
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
