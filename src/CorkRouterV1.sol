@@ -10,6 +10,12 @@ import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
 import {IPermit2} from "permit2/interfaces/IPermit2.sol";
 
+/**
+ * @title Cork Router V1
+ * @notice A router contract that enables users to interact with the Cork Protocol, providing various swapping and deposit functionalities
+ * @dev This contract handles deposits, swaps, and redemptions between different token types in the Cork ecosystem
+ * @author Cork Protocol team
+ */
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
     /// @inheritdoc ICorkRouterV1
     function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
