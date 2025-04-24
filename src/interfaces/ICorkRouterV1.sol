@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {ICommon} from "./ICommon.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
-import {IPermit2} from "permit2/interfaces/IPermit2.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /**
  * @title ICorkRouterV1

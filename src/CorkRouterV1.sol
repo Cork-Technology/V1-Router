@@ -8,7 +8,7 @@ import {IWithdrawalRouter} from "Depeg-swap/contracts/interfaces/IWithdrawalRout
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 import {Initialize} from "Depeg-swap/contracts/interfaces/Init.sol";
 import {ICorkRouterV1} from "./interfaces/ICorkRouterV1.sol";
-import {IPermit2} from "permit2/interfaces/IPermit2.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /**
  * @title Cork Router V1
