@@ -9,12 +9,11 @@ import {ICorkSwapAggregator} from "../src/interfaces/ICorkSwapAggregator.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Permit2} from "./utils/Permit2Mock.sol";
-import {SigUtil} from "./utils/SigUtil.sol";
+import "./utils/SigUtil.sol";
 
-contract TestBase is Helper, SigUtil {
+contract TestBase is Helper {
     CorkRouterV1 public router;
     MockAggregator public mockAggregator;
-    Permit2 public permit2;
     address caller;
     uint256 stateId;
     uint256 public USER_KEY = 1;
@@ -27,7 +26,6 @@ contract TestBase is Helper, SigUtil {
 
         mockAggregator = new MockAggregator();
         router = new CorkRouterV1();
-        permit2 = new Permit2();
         ERC1967Proxy proxy = new ERC1967Proxy(address(router), "");
         router = CorkRouterV1(address(proxy));
 
@@ -104,5 +102,29 @@ contract TestBase is Helper, SigUtil {
 
     function restore() internal {
         vm.revertToState(stateId);
+    }
+
+    function createPermitAndSignature(
+        address token,
+        uint256 amount,
+        address spender,
+        uint256 privateKey,
+        address permit2Address
+    ) public view returns (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) {
+        SigUtil sigUtil = new SigUtil();
+
+        return sigUtil.createPermitAndSignature(token, amount, spender, privateKey, permit2Address);
+    }
+
+    function createBatchPermitAndSignature(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address spender,
+        uint256 privateKey,
+        address permit2Address
+    ) public view returns (IAllowanceTransfer.PermitBatch memory permit, bytes memory signature) {
+        SigUtil sigUtil = new SigUtil();
+
+        return sigUtil.createBatchPermitAndSignature(tokens, amounts, spender, privateKey, permit2Address);
     }
 }
