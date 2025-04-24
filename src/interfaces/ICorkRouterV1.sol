@@ -207,9 +207,14 @@ interface ICorkRouterV1 is ICommon {
      * @custom:emits DepositLv event on successful deposit
      * @custom:reverts If the deposit fails
      */
-    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
-        external
-        returns (uint256 received);
+    function depositLv(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 raTolerance,
+        uint256 ctTolerance,
+        uint256 deadline,
+        uint256 minimumLvOut
+    ) external returns (uint256 received);
 
     /**
      * @notice Deposits tokens into the LV (Liquidity Vault) with permit
@@ -231,7 +236,9 @@ interface ICorkRouterV1 is ICommon {
         uint256 raTolerance,
         uint256 ctTolerance,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) external returns (uint256 received);
 
     /**
