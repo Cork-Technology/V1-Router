@@ -8,7 +8,7 @@ import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRout
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
-import {IPermit2} from "permit2/interfaces/IPermit2.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ICommon} from "./interfaces/ICommon.sol";
 
 abstract contract State is ReentrancyGuardTransient, OwnableUpgradeable, UUPSUpgradeable, ICommon {

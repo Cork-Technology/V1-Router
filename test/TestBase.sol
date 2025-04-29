@@ -2,7 +2,7 @@ pragma solidity ^0.8.26;
 
 import {Helper} from "Depeg-swap/test/forge/Helper.sol";
 import {MockAggregator} from "./MockAggregator.sol";
-import {DummyWETH} from "Depeg-swap/test/utils/dummy/DummyWETH.sol";
+import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {CorkRouterV1} from "./../src/CorkRouterV1.sol";
 import {ICorkSwapAggregator} from "../src/interfaces/ICorkSwapAggregator.sol";

@@ -3,12 +3,12 @@ pragma solidity 0.8.26;
 // solhint-disable
 
 import {TestBase} from "./../TestBase.sol";
-import {DummyWETH} from "Depeg-swap/test/utils/dummy/DummyWETH.sol";
+import {DummyWETH} from "Depeg-swap/contracts/dummy/DummyWETH.sol";
 import {ICommon} from "../../src/interfaces/ICommon.sol";
 import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
-import {IAllowanceTransfer} from "permit2/interfaces/IAllowanceTransfer.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 contract RedeemRaWithDsPa is TestBase {
     DummyWETH internal ra;
