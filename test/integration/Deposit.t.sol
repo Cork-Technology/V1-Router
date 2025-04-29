@@ -57,7 +57,7 @@ contract Deposit is TestBase {
 
         Id id = defaultCurrencyId;
 
-        uint256 received = router.depositLv(params, id, 0, 0);
+        uint256 received = router.depositLv(params, id, 0, 0, block.timestamp, 0);
 
         // verify that router has no funds
         assertEq(ra.balanceOf(address(router)), 0);
@@ -107,7 +107,7 @@ contract Deposit is TestBase {
 
         Id id = defaultCurrencyId;
 
-        uint256 received = router.depositLv(params, id, 0, 0);
+        uint256 received = router.depositLv(params, id, 0, 0, block.timestamp, 0);
 
         // verify that router has no funds
         _verifyNoFunds(ra, address(router));
@@ -168,7 +168,7 @@ contract Deposit is TestBase {
         (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) =
             createPermitAndSignature(params.tokenIn, params.amountIn, address(router), USER_KEY, address(permit2));
 
-        uint256 received = router.depositLv(params, id, 0, 0, permit, signature);
+        uint256 received = router.depositLv(params, id, 0, 0, permit, signature, block.timestamp, 0);
 
         // verify that router has no funds
         _verifyNoFunds(ra, address(router));

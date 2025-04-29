@@ -51,12 +51,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
-        external
-        nonReentrant
-        returns (uint256 received)
-    {
-        return _depositLv(params, id, raTolerance, ctTolerance, false);
+    function depositLv(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 raTolerance,
+        uint256 ctTolerance,
+        uint256 deadline,
+        uint256 minimumLvOut
+    ) external nonReentrant returns (uint256 received) {
+        return _depositLv(params, id, raTolerance, ctTolerance, false, deadline, minimumLvOut);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -66,10 +69,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         uint256 raTolerance,
         uint256 ctTolerance,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) external nonReentrant returns (uint256 received) {
         _permit2().permit(_msgSender(), permit, signature);
-        return _depositLv(params, id, raTolerance, ctTolerance, true);
+        return _depositLv(params, id, raTolerance, ctTolerance, true, deadline, minimumLvOut);
     }
 
     function _depositLv(
@@ -77,7 +82,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         Id id,
         uint256 raTolerance,
         uint256 ctTolerance,
-        bool usePermit
+        bool usePermit,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) internal returns (uint256 received) {
         _validateParams(params);
 
@@ -85,9 +92,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (received, token) = _swap(params, usePermit);
 
         _increaseAllowanceForProtocol(token, received);
-        received = _vault().depositLv(id, received, raTolerance, ctTolerance);
+        received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
+        
+        (address ra,) = __getRaPair(id);
+        (address ct,) =__getCtDs(id);
+        
+        _transferToUser(ra, _contractBalance(ra));
+        _transferToUser(ct, _contractBalance(ct));
 
         emit DepositLv(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
