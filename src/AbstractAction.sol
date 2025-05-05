@@ -57,8 +57,20 @@ abstract contract AbstractAction is State {
         _increaseAllowance(token, flashSwapRouter, amount);
     }
 
+    function _revockAllowanceForProtocol(address token) internal {
+        _revockAllowance(token, core);
+    }
+
+    function _revockAllowanceForRouter(address token) internal {
+        _revockAllowance(token, flashSwapRouter);
+    }
+
     function _increaseAllowance(address token, address to, uint256 amount) internal {
         TransferHelper.safeApprove(token, to, amount);
+    }
+
+    function _revockAllowance(address token, address to) internal {
+        TransferHelper.safeRevockAllowance(token, to);
     }
 
     function _transferToUser(address token, uint256 amount) internal {
@@ -141,6 +153,8 @@ abstract contract AbstractAction is State {
         _increaseAllowanceForProtocol(ct, _contractBalance(ct));
 
         _psm().redeemWithExpiredCt(id, dsId, _contractBalance(ct));
+
+        _revockAllowanceForProtocol(ct);
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
@@ -190,8 +204,9 @@ abstract contract AbstractAction is State {
             if (!success) {
                 _transfer(ct, user, _contractBalance(ct));
             }
+            _revockAllowance(ct, hook);
         } else {
-            _increaseAllowance(ds, flashSwapRouter, diff);
+            _increaseAllowanceForRouter(ds, diff);
             IDsFlashSwapCore flashswapRouter = _flashSwapRouter();
 
             // we essentially just give back the token to user if there's if for some reason
@@ -201,7 +216,10 @@ abstract contract AbstractAction is State {
             catch {
                 _transfer(ds, user, _contractBalance(ct));
             }
+            _revockAllowanceForRouter(ds);
         }
+        _revockAllowanceForProtocol(ct);
+        _revockAllowanceForProtocol(ds);
     }
 
     function _swap(AggregatorParams memory params, bool usePermit) internal returns (uint256 amount, address token) {
