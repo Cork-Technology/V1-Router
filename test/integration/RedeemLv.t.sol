@@ -48,7 +48,7 @@ contract RedeemLv is TestBase {
         corkConfig.updateLvStrategyCtSplitPercentage(id, 0);
 
         // deposit some lv and psm
-        router.depositLv(params, id, 0, 0);
+        router.depositLv(params, id, 0, 0, block.timestamp, 0);
         router.depositPsm(params, id);
 
         params = defaultAggregatorParams(address(pa), address(ra), amount);
@@ -104,7 +104,7 @@ contract RedeemLv is TestBase {
         corkConfig.updateLvStrategyCtSplitPercentage(id, 0);
 
         // deposit some lv and psm
-        router.depositLv(params, id, 0, 0);
+        router.depositLv(params, id, 0, 0, block.timestamp, 0);
 
         params = defaultAggregatorParams(address(pa), address(ra), amount);
 
@@ -143,7 +143,7 @@ contract RedeemLv is TestBase {
         corkConfig.updateLvStrategyCtSplitPercentage(id, 0);
 
         // deposit some lv and psm
-        router.depositLv(params, id, 0, 0);
+        router.depositLv(params, id, 0, 0, block.timestamp, 0);
 
         // buy a little bit of ds so that we can test selling ct
         flashSwapRouter.swapRaforDs(id, 1, 0.0001 ether, 0, defaultBuyApproxParams(), defaultOffchainGuessParams());

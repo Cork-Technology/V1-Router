@@ -37,7 +37,7 @@ contract SwapDs is TestBase {
         allowFullAllowance(address(pa), address(moduleCore));
 
         // add liquidity
-        moduleCore.depositLv(defaultCurrencyId, 10 ether, 0, 0);
+        moduleCore.depositLv(defaultCurrencyId, 1000 ether, 0, 0, 0, block.timestamp);
         moduleCore.depositPsm(defaultCurrencyId, 10 ether);
     }
 
@@ -114,7 +114,7 @@ contract SwapDs is TestBase {
         uint256 balanceRaBefore = ra.balanceOf(DEFAULT_ADDRESS);
         uint256 balanceRandomTokenBefore = randomToken.balanceOf(DEFAULT_ADDRESS);
 
-        params.amount = 0.1 ether;
+        params.amount = 0.001 ether;
         uint256 out = router.swapDsForRa(params);
 
         uint256 balanceRaAfter = ra.balanceOf(DEFAULT_ADDRESS);

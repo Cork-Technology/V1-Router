@@ -45,7 +45,7 @@ contract SwapCt is TestBase {
         allowFullAllowance(ds, address(router));
 
         // add liquidity
-        moduleCore.depositLv(defaultCurrencyId, 10 ether, 0, 0);
+        moduleCore.depositLv(defaultCurrencyId, 10 ether, 0, 0, 0, block.timestamp);
         moduleCore.depositPsm(defaultCurrencyId, 10 ether);
     }
 
