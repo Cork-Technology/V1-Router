@@ -611,10 +611,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         _transferToUser(outToken, _contractBalance(outToken));
 
-        // transfer unused DS and revock allowances
+        // transfer unused DS and revoke allowances
         _transferToUser(ds, _contractBalance(ds));
-        _revockAllowanceForProtocol(ds);
-        _revockAllowanceForProtocol(pa);
+        _revokeAllowanceForProtocol(ds);
+        _revokeAllowanceForProtocol(pa);
 
         emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
     }

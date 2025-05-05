@@ -57,20 +57,20 @@ abstract contract AbstractAction is State {
         _increaseAllowance(token, flashSwapRouter, amount);
     }
 
-    function _revockAllowanceForProtocol(address token) internal {
-        _revockAllowance(token, core);
+    function _revokeAllowanceForProtocol(address token) internal {
+        _revokeAllowance(token, core);
     }
 
-    function _revockAllowanceForRouter(address token) internal {
-        _revockAllowance(token, flashSwapRouter);
+    function _revokeAllowanceForRouter(address token) internal {
+        _revokeAllowance(token, flashSwapRouter);
     }
 
     function _increaseAllowance(address token, address to, uint256 amount) internal {
         TransferHelper.safeApprove(token, to, amount);
     }
 
-    function _revockAllowance(address token, address to) internal {
-        TransferHelper.safeRevockAllowance(token, to);
+    function _revokeAllowance(address token, address to) internal {
+        TransferHelper.safeRevokeAllowance(token, to);
     }
 
     function _transferToUser(address token, uint256 amount) internal {
@@ -154,7 +154,7 @@ abstract contract AbstractAction is State {
 
         _psm().redeemWithExpiredCt(id, dsId, _contractBalance(ct));
 
-        _revockAllowanceForProtocol(ct);
+        _revokeAllowanceForProtocol(ct);
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
@@ -204,7 +204,7 @@ abstract contract AbstractAction is State {
             if (!success) {
                 _transfer(ct, user, _contractBalance(ct));
             }
-            _revockAllowance(ct, hook);
+            _revokeAllowance(ct, hook);
         } else {
             _increaseAllowanceForRouter(ds, diff);
             IDsFlashSwapCore flashswapRouter = _flashSwapRouter();
@@ -216,10 +216,10 @@ abstract contract AbstractAction is State {
             catch {
                 _transfer(ds, user, _contractBalance(ct));
             }
-            _revockAllowanceForRouter(ds);
+            _revokeAllowanceForRouter(ds);
         }
-        _revockAllowanceForProtocol(ct);
-        _revockAllowanceForProtocol(ds);
+        _revokeAllowanceForProtocol(ct);
+        _revokeAllowanceForProtocol(ds);
     }
 
     function _swap(AggregatorParams memory params, bool usePermit) internal returns (uint256 amount, address token) {

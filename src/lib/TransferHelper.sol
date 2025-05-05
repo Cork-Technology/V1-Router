@@ -19,7 +19,7 @@ library TransferHelper {
         IERC20(token).safeTransferFrom(from, to, value);
     }
 
-    function safeRevockAllowance(address token, address to) internal {
+    function safeRevokeAllowance(address token, address to) internal {
         uint256 currentAllowance = IERC20(token).allowance(address(this), to);
         IERC20(token).safeDecreaseAllowance(to, currentAllowance);
     }
