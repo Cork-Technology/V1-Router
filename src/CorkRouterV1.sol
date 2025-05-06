@@ -95,10 +95,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
-        
+
         (address ra,) = __getRaPair(id);
-        (address ct,) =__getCtDs(id);
-        
+        (address ct,) = __getCtDs(id);
+
         _transferToUser(ra, _contractBalance(ra));
         _transferToUser(ct, _contractBalance(ct));
 
@@ -624,8 +624,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         _transferToUser(outToken, _contractBalance(outToken));
 
-        // transfer unused DS
+        // transfer unused DS and revoke allowances
         _transferToUser(ds, _contractBalance(ds));
+        _revokeAllowanceForProtocol(ds);
+        _revokeAllowanceForProtocol(pa);
 
         emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
     }
