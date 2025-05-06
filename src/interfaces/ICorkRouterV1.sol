@@ -62,6 +62,9 @@ interface ICorkRouterV1 is ICommon {
         CtForRaExactOut
     }
 
+    /// @notice Thrown when permit fails
+    error PermitFailed();
+
     /**
      * @dev Emitted when tokens are deposited into the PSM (Peg Stability Module)
      * @param caller The address that called the deposit function
