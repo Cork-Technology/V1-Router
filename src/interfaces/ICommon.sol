@@ -17,6 +17,8 @@ interface ICommon {
     /// @notice Thrown when non-manager calls the unlockCallback
     error OnlyManager();
 
+    error Expired();
+
     /// @notice additional parameters for external aggregator adapters(i.e contract that handles interaction to the actual routers)
     /// external adapters should respect this parameters
     struct AggregatorParams {
