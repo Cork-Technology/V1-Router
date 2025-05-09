@@ -155,10 +155,11 @@ abstract contract AbstractAction is State {
             _handleLvRedeemDsActive(lvRedeemParams.id, ct, ds, dsId, lvRedeemParams.dsMinOut, lvRedeemParams.receiver);
         }
 
-        _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
+        (, address out) = _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
 
         _transfer(ra, lvRedeemParams.receiver, _contractBalance(ra));
         _transfer(pa, lvRedeemParams.receiver, _contractBalance(pa));
+        _transfer(pa, lvRedeemParams.receiver, _contractBalance(out));
     }
 
     function _handleLvRedeemDsActive(Id id, address ct, address ds, uint256 dsId, uint256 amountOutMin, address user)
