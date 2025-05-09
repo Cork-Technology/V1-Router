@@ -95,10 +95,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
-        
+
         (address ra,) = __getRaPair(id);
-        (address ct,) =__getCtDs(id);
-        
+        (address ct,) = __getCtDs(id);
+
         _transferToUser(ra, _contractBalance(ra));
         _transferToUser(ct, _contractBalance(ct));
 
@@ -201,9 +201,11 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         (address ct, address ds) = __getCtDs(params.id);
 
+        uint256 totalDs = _contractBalance(ds);
+
         // we transfer both refunded ct and ds tokens
         _transferToUser(ct, _contractBalance(ct));
-        _transferToUser(ds, _contractBalance(ds));
+        _transferToUser(ds, totalDs);
 
         _emitSwapEvent(
             SwapEventParams({
@@ -212,7 +214,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
                 tokenIn: params.inputTokenAggregatorParams.tokenIn,
                 amountIn: params.inputTokenAggregatorParams.amountIn,
                 tokenOut: ds,
-                amountOut: _contractBalance(ds),
+                amountOut: totalDs,
                 id: params.id,
                 dsId: params.dsId,
                 minOutput: params.amountOutMin,
