@@ -95,10 +95,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
-        
+
         (address ra,) = __getRaPair(id);
-        (address ct,) =__getCtDs(id);
-        
+        (address ct,) = __getCtDs(id);
+
         _transferToUser(ra, _contractBalance(ra));
         _transferToUser(ct, _contractBalance(ct));
 
@@ -621,6 +621,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         address outToken;
         (outAmount, outToken) = _swapNoTransfer(zapOutParams);
+
+        {
+            (address ra,) = __getRaPair(id);
+            // revert if no zapout swap occured and output is not RA
+            if (outToken != ra && zapOutParams.enableAggregator == false) revert InvalidTokens();
+        }
 
         _transferToUser(outToken, _contractBalance(outToken));
 
