@@ -251,9 +251,13 @@ interface ICorkRouterV1 is ICommon {
      * @custom:emits Repurchase event on successful repurchase
      * @custom:reverts If the repurchase fails
      */
-    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
-        external
-        returns (RepurchaseReturn memory result);
+    function repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
+    ) external returns (RepurchaseReturn memory result);
 
     /**
      * @notice Executes a repurchase operation with permit
@@ -273,7 +277,9 @@ interface ICorkRouterV1 is ICommon {
         Id id,
         uint256 amount,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
     ) external returns (RepurchaseReturn memory result);
 
     /**
