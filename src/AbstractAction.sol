@@ -62,7 +62,9 @@ abstract contract AbstractAction is State {
     }
 
     function _transferToUser(address token, uint256 amount) internal {
-        TransferHelper.safeTransfer(token, msg.sender, amount);
+        if (amount > 0) {
+            TransferHelper.safeTransfer(token, msg.sender, amount);
+        }
     }
 
     function _transfer(address token, address to, uint256 amount) internal {
