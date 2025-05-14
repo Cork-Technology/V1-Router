@@ -95,10 +95,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
-        
+
         (address ra,) = __getRaPair(id);
-        (address ct,) =__getCtDs(id);
-        
+        (address ct,) = __getCtDs(id);
+
         _transferToUser(ra, _contractBalance(ra));
         _transferToUser(ct, _contractBalance(ct));
 
