@@ -193,7 +193,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         {
             uint256 currentDsId = _getDsId(params.id);
 
-            if (currentDsId > params.dsId) revert Expired();
+            if (currentDsId != params.dsId) revert Expired();
         }
 
         _validateParamsCalldata(params.inputTokenAggregatorParams);
@@ -248,7 +248,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         {
             uint256 currentDsId = _getDsId(params.id);
 
-            if (currentDsId > params.dsId) revert Expired();
+            if (currentDsId != params.dsId) revert Expired();
         }
 
         _validateParams(params.raAggregatorParams);
