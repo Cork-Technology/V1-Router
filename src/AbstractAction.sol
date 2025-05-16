@@ -199,7 +199,7 @@ abstract contract AbstractAction is State {
             // solhint-disable-next-line no-empty-blocks
             try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin) returns (uint256) {}
             catch {
-                _transfer(ds, user, _contractBalance(ct));
+                _transfer(ds, user, _contractBalance(ds));
             }
         }
     }
