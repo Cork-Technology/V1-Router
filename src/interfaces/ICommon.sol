@@ -17,7 +17,14 @@ interface ICommon {
     /// @notice Thrown when non-manager calls the unlockCallback
     error OnlyManager();
 
+    /// @notice Thrown when the get less amount than specified by user
     error InsufficientAmountOut();
+
+    /// @notice Thrown when the DS is expired
+    error Expired();
+
+    /// @notice Thrown when the deadline is exceeded
+    error DeadlineExceeded();
 
     /// @notice additional parameters for external aggregator adapters(i.e contract that handles interaction to the actual routers)
     /// external adapters should respect this parameters
