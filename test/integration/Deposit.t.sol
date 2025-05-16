@@ -36,7 +36,7 @@ contract Deposit is TestBase {
 
         Id id = defaultCurrencyId;
 
-        uint256 received = router.depositPsm(params, id);
+        uint256 received = router.depositPsm(params, id, block.timestamp + 1000);
 
         // verify that router has no funds
         assertEq(ra.balanceOf(address(router)), 0);
@@ -81,7 +81,7 @@ contract Deposit is TestBase {
 
         Id id = defaultCurrencyId;
 
-        uint256 received = router.depositPsm(params, id);
+        uint256 received = router.depositPsm(params, id, block.timestamp + 1000);
 
         // verify that router has no funds
         assertEq(ra.balanceOf(address(router)), 0);
