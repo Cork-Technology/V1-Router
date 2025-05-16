@@ -62,7 +62,7 @@ contract SwapDs is TestBase {
         uint256 balanceDsBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 balanceCtBefore = IERC20(ct).balanceOf(DEFAULT_ADDRESS);
 
-        IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(params);
+        IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(params, block.timestamp + 1000);
 
         uint256 balanceDsAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 balanceCtAfter = IERC20(ct).balanceOf(DEFAULT_ADDRESS);
@@ -102,7 +102,7 @@ contract SwapDs is TestBase {
             ICommon.SwapRaForDsParams memory swapRa = ICommon.SwapRaForDsParams(
                 defaultCurrencyId, 1, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), swapRaParams
             );
-            IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(swapRa);
+            IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(swapRa, block.timestamp + 1000);
         }
 
         ICommon.SwapDsForRaParams memory params =
@@ -115,7 +115,7 @@ contract SwapDs is TestBase {
         uint256 balanceRandomTokenBefore = randomToken.balanceOf(DEFAULT_ADDRESS);
 
         params.amount = 0.001 ether;
-        uint256 out = router.swapDsForRa(params);
+        uint256 out = router.swapDsForRa(params, block.timestamp + 1000);
 
         uint256 balanceRaAfter = ra.balanceOf(DEFAULT_ADDRESS);
         uint256 balanceRandomTokenAfter = randomToken.balanceOf(DEFAULT_ADDRESS);
@@ -200,7 +200,7 @@ contract SwapDs is TestBase {
             ICommon.SwapRaForDsParams memory swapRa = ICommon.SwapRaForDsParams(
                 defaultCurrencyId, 1, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), swapRaParams
             );
-            IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(swapRa);
+            IDsFlashSwapCore.SwapRaForDsReturn memory results = router.swapRaForDs(swapRa, block.timestamp + 1000);
         }
 
         // Transfer the DS tokens to our test user

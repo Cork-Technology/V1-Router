@@ -49,7 +49,7 @@ contract RedeemLv is TestBase {
 
         // deposit some lv and psm
         router.depositLv(params, id, 0, 0, block.timestamp, 0);
-        router.depositPsm(params, id);
+        router.depositPsm(params, id, block.timestamp + 1000);
 
         params = defaultAggregatorParams(address(pa), address(ra), amount);
 
