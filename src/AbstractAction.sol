@@ -42,11 +42,11 @@ abstract contract AbstractAction is State {
     }
 
     function _transferFromUser(address token, uint256 amount) internal {
-        TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
+        TransferHelper.safeTransferFrom(token, _msgSender(), address(this), amount);
     }
 
     function _transferFromUserWithPermit(address token, uint256 amount) internal {
-        _permit2().transferFrom(msg.sender, address(this), SafeCast.toUint160(amount), token);
+        _permit2().transferFrom(_msgSender(), address(this), SafeCast.toUint160(amount), token);
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
@@ -57,12 +57,24 @@ abstract contract AbstractAction is State {
         _increaseAllowance(token, flashSwapRouter, amount);
     }
 
+    function _revokeAllowanceForProtocol(address token) internal {
+        _revokeAllowance(token, core);
+    }
+
+    function _revokeAllowanceForRouter(address token) internal {
+        _revokeAllowance(token, flashSwapRouter);
+    }
+
     function _increaseAllowance(address token, address to, uint256 amount) internal {
         TransferHelper.safeApprove(token, to, amount);
     }
 
+    function _revokeAllowance(address token, address to) internal {
+        TransferHelper.safeRevokeAllowance(token, to);
+    }
+
     function _transferToUser(address token, uint256 amount) internal {
-        TransferHelper.safeTransfer(token, msg.sender, amount);
+        TransferHelper.safeTransfer(token, _msgSender(), amount);
     }
 
     function _transfer(address token, address to, uint256 amount) internal {
@@ -141,6 +153,8 @@ abstract contract AbstractAction is State {
         _increaseAllowanceForProtocol(ct, _contractBalance(ct));
 
         _psm().redeemWithExpiredCt(id, dsId, _contractBalance(ct));
+
+        _revokeAllowanceForProtocol(ct);
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
@@ -155,10 +169,11 @@ abstract contract AbstractAction is State {
             _handleLvRedeemDsActive(lvRedeemParams.id, ct, ds, dsId, lvRedeemParams.dsMinOut, lvRedeemParams.receiver);
         }
 
-        _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
+        (, address out) = _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
 
         _transfer(ra, lvRedeemParams.receiver, _contractBalance(ra));
         _transfer(pa, lvRedeemParams.receiver, _contractBalance(pa));
+        _transfer(out, lvRedeemParams.receiver, _contractBalance(out));
     }
 
     function _handleLvRedeemDsActive(Id id, address ct, address ds, uint256 dsId, uint256 amountOutMin, address user)
@@ -190,8 +205,9 @@ abstract contract AbstractAction is State {
             if (!success) {
                 _transfer(ct, user, _contractBalance(ct));
             }
+            _revokeAllowance(ct, hook);
         } else {
-            _increaseAllowance(ds, flashSwapRouter, diff);
+            _increaseAllowanceForRouter(ds, diff);
             IDsFlashSwapCore flashswapRouter = _flashSwapRouter();
 
             // we essentially just give back the token to user if there's if for some reason
@@ -199,9 +215,12 @@ abstract contract AbstractAction is State {
             // solhint-disable-next-line no-empty-blocks
             try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin) returns (uint256) {}
             catch {
-                _transfer(ds, user, _contractBalance(ct));
+                _transfer(ds, user, _contractBalance(ds));
             }
+            _revokeAllowanceForRouter(ds);
         }
+        _revokeAllowanceForProtocol(ct);
+        _revokeAllowanceForProtocol(ds);
     }
 
     function _swap(AggregatorParams memory params, bool usePermit) internal returns (uint256 amount, address token) {
@@ -269,7 +288,7 @@ abstract contract AbstractAction is State {
     function _handleSwapCallback(bytes calldata raw) internal {
         address manager = _hook().getPoolManager();
 
-        if (msg.sender != manager) {
+        if (_msgSender() != manager) {
             revert OnlyManager();
         }
 
@@ -302,5 +321,11 @@ abstract contract AbstractAction is State {
 
     function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
         _handleSwapCallback(rawData);
+    }
+
+    function withinDeadline(uint256 deadline) internal view {
+        if (block.timestamp > deadline) {
+            revert DeadlineExceeded();
+        }
     }
 }

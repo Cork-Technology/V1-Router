@@ -41,7 +41,11 @@ contract Repurchase is TestBase {
 
         uint256 amount = 1e18;
 
-        router.depositPsm(defaultAggregatorParams(address(randomToken), address(ra), amount), defaultCurrencyId);
+        router.depositPsm(
+            defaultAggregatorParams(address(randomToken), address(ra), amount),
+            defaultCurrencyId,
+            block.timestamp + 1000
+        );
 
         (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
 
@@ -51,7 +55,14 @@ contract Repurchase is TestBase {
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
 
-        router.repurchase(defaultAggregatorParams(address(randomToken), address(ra), amount), defaultCurrencyId, amount);
+        router.repurchase(
+            defaultAggregatorParams(address(randomToken), address(ra), amount),
+            defaultCurrencyId,
+            amount,
+            block.timestamp + 1000,
+            0,
+            0
+        );
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
@@ -71,7 +82,7 @@ contract Repurchase is TestBase {
         ICommon.AggregatorParams memory params = defaultAggregatorParams(token, address(ra), amount);
         params.enableAggregator = enableAggregator;
 
-        router.depositPsm(params, defaultCurrencyId);
+        router.depositPsm(params, defaultCurrencyId, block.timestamp + 1000);
 
         (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
 
@@ -81,7 +92,7 @@ contract Repurchase is TestBase {
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
 
-        router.repurchase(params, defaultCurrencyId, amount);
+        router.repurchase(params, defaultCurrencyId, amount, block.timestamp + 1 days, 0, 0);
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
@@ -101,7 +112,11 @@ contract Repurchase is TestBase {
         randomToken.transfer(user, amount);
 
         // We need to prepare the system first - using the normal account to create DS
-        router.depositPsm(defaultAggregatorParams(address(randomToken), address(ra), amount), defaultCurrencyId);
+        router.depositPsm(
+            defaultAggregatorParams(address(randomToken), address(ra), amount),
+            defaultCurrencyId,
+            block.timestamp + 1000
+        );
 
         (, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
 
@@ -121,7 +136,7 @@ contract Repurchase is TestBase {
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(user);
         uint256 paBalanceBefore = pa.balanceOf(user);
 
-        router.repurchase(params, id, amount, permit, signature);
+        router.repurchase(params, id, amount, permit, signature, 0, 0);
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(user);
         uint256 paBalanceAfter = pa.balanceOf(user);
