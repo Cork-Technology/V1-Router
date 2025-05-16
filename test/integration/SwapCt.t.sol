@@ -62,9 +62,9 @@ contract SwapCt is TestBase {
 
         // test slippage
         vm.expectRevert();
-        router.swapRaForCtExactIn(AggregatorParams, defaultCurrencyId, 100000 ether);
+        router.swapRaForCtExactIn(AggregatorParams, defaultCurrencyId, 100000 ether, block.timestamp + 1000);
 
-        uint256 amountOut = router.swapRaForCtExactIn(AggregatorParams, defaultCurrencyId, 0);
+        uint256 amountOut = router.swapRaForCtExactIn(AggregatorParams, defaultCurrencyId, 0, block.timestamp + 1000);
 
         uint256 tokenInBalanceAfter = balance(tokenIn, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(ct, DEFAULT_ADDRESS);
@@ -91,7 +91,7 @@ contract SwapCt is TestBase {
         ICommon.AggregatorParams memory AggregatorParams = defaultAggregatorParams(tokenIn, tokenOut, amountIn);
 
         (uint256 used, uint256 remaining) =
-            router.swapRaForCtExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected);
+            router.swapRaForCtExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected, block.timestamp + 1000);
 
         uint256 tokenInBalanceAfter = balance(address(ra), DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(ct, DEFAULT_ADDRESS);
@@ -122,17 +122,18 @@ contract SwapCt is TestBase {
 
         // test slippage
         vm.expectRevert();
-        router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 100000 ether);
+        router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 100000 ether, block.timestamp + 1000);
 
         // use this without aggregator first to get the RA,
         // then we will revert the state so that we can test the aggregator with accurate RA
         snap();
         ICommon.AggregatorParams memory mockAggregatorParams = defaultAggregatorParams(tokenIn, tokenIn, 0);
-        uint256 amountOut = router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0);
+        uint256 amountOut =
+            router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0, block.timestamp + 1000);
         restore();
 
         AggregatorParams.amountIn = amountOut;
-        amountOut = router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0);
+        amountOut = router.swapCtForRaExactIn(AggregatorParams, defaultCurrencyId, amountIn, 0, block.timestamp + 1000);
 
         uint256 tokenInBalanceAfter = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(tokenOut, DEFAULT_ADDRESS);
@@ -157,8 +158,9 @@ contract SwapCt is TestBase {
         uint256 tokenInBalanceBefore = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceBefore = balance(tokenOut, DEFAULT_ADDRESS);
 
-        (uint256 used, uint256 remaining, uint256 tokenOutAmountOut) =
-            router.swapCtForRaExactOut(AggregatorParams, defaultCurrencyId, amountOutExpected, amountIn);
+        (uint256 used, uint256 remaining, uint256 tokenOutAmountOut) = router.swapCtForRaExactOut(
+            AggregatorParams, defaultCurrencyId, amountOutExpected, amountIn, block.timestamp + 1000
+        );
 
         uint256 tokenInBalanceAfter = balance(ct, DEFAULT_ADDRESS);
         uint256 tokenOutBalanceAfter = balance(tokenOut, DEFAULT_ADDRESS);
