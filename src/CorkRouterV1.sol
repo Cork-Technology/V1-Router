@@ -35,7 +35,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         bytes calldata signature
     ) external nonReentrant returns (uint256 received) {
         // Process permit first to get token approval
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
 
         return _depositPsm(params, id, true);
     }
@@ -78,7 +78,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         uint256 deadline,
         uint256 minimumLvOut
     ) external nonReentrant returns (uint256 received) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _depositLv(params, id, raTolerance, ctTolerance, true, deadline, minimumLvOut);
     }
 
@@ -135,7 +135,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (RepurchaseReturn memory result) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _repurchase(params, id, amount, true);
     }
 
@@ -189,7 +189,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (IDsFlashSwapCore.SwapRaForDsReturn memory results) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapRaForDs(params, true);
     }
 
@@ -254,7 +254,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapDsForRa(params, true);
     }
 
@@ -322,7 +322,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapRaForCtExactIn(params, id, amountOutMin, true);
     }
 
@@ -382,7 +382,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 used, uint256 remaining) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapRaForCtExactOut(params, id, amountOut, true);
     }
 
@@ -452,7 +452,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapCtForRaExactIn(params, id, ctAmount, raAmountOutMin, true);
     }
 
@@ -535,7 +535,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapCtForRaExactOut(params, id, rAmountOut, amountInMax, true);
     }
 
@@ -624,7 +624,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitBatch calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
-        _permit2().permit(_msgSender(), permit, signature);
+        batchPermitCall(permit, signature);
         return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, true);
     }
 
@@ -681,5 +681,32 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
             params.unused,
             params.used
         );
+    }
+
+    function permitCall(IPermit2.PermitSingle calldata permit, bytes calldata signature) internal {
+        try _permit2().permit(_msgSender(), permit, signature) {}
+        catch {
+            (uint160 amount, uint48 expiration, uint48 nonce) =
+                _permit2().allowance(_msgSender(), permit.details.token, permit.spender);
+            if (amount < permit.details.amount || expiration < block.timestamp || nonce != permit.details.nonce) {
+                revert PermitFailed();
+            }
+        }
+    }
+
+    function batchPermitCall(IPermit2.PermitBatch calldata permit, bytes calldata signature) internal {
+        try _permit2().permit(_msgSender(), permit, signature) {}
+        catch {
+            for (uint256 i = 0; i < permit.details.length; i++) {
+                (uint160 amount, uint48 expiration, uint48 nonce) =
+                    _permit2().allowance(_msgSender(), permit.details[i].token, permit.spender);
+                if (
+                    amount < permit.details[i].amount || expiration < block.timestamp
+                        || nonce != permit.details[i].nonce
+                ) {
+                    revert PermitFailed();
+                }
+            }
+        }
     }
 }
