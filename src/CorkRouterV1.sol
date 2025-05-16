@@ -671,6 +671,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         address outToken;
         (outAmount, outToken) = _swapNoTransfer(zapOutParams);
 
+        if (zapOutParams.enableAggregator == false) {
+            (address ra,) = __getRaPair(id);
+            // revert if no zapout swap occured and output is not RA
+            if (outToken != ra) revert InvalidTokens();
+        }
+
         _transferToUser(outToken, _contractBalance(outToken));
 
         // transfer unused DS and revoke allowances
