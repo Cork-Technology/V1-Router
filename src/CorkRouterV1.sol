@@ -197,6 +197,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         internal
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
+        {
+            uint256 currentDsId = _getDsId(params.id);
+
+            if (currentDsId != params.dsId) revert Expired();
+        }
+
         _validateParamsCalldata(params.inputTokenAggregatorParams);
 
         (uint256 amount, address token) = _swap(params.inputTokenAggregatorParams, usePermit);
@@ -253,6 +259,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     function _swapDsForRa(SwapDsForRaParams memory params, bool usePermit) internal returns (uint256 amountOut) {
+        {
+            uint256 currentDsId = _getDsId(params.id);
+
+            if (currentDsId != params.dsId) revert Expired();
+        }
+
         _validateParams(params.raAggregatorParams);
 
         (, address ds) = __getCtDs(params.id);
