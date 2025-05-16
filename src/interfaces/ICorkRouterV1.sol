@@ -62,6 +62,9 @@ interface ICorkRouterV1 is ICommon {
         CtForRaExactOut
     }
 
+    /// @notice Thrown when permit fails
+    error PermitFailed();
+
     /**
      * @dev Emitted when tokens are deposited into the PSM (Peg Stability Module)
      * @param caller The address that called the deposit function
@@ -171,11 +174,14 @@ interface ICorkRouterV1 is ICommon {
      * @dev Takes input tokens (any token), swaps them to an accepted protocol token, then deposits into PSM to receive CT/DS tokens
      * @param params The aggregator parameters for the deposit
      * @param id The Market identifier for the ModuleCore contract
+     * @param deadline The deadline for the PSM deposit
      * @return received The amount of CT/DS tokens user received from the deposit
      * @custom:emits DepositPsm event on successful deposit
      * @custom:reverts If the deposit fails
      */
-    function depositPsm(AggregatorParams calldata params, Id id) external returns (uint256 received);
+    function depositPsm(AggregatorParams calldata params, Id id, uint256 deadline)
+        external
+        returns (uint256 received);
 
     /**
      * @notice Deposits tokens into the PSM (Peg Stability Module) with permit
@@ -203,6 +209,8 @@ interface ICorkRouterV1 is ICommon {
      * @param id The Market identifier for the ModuleCore contract
      * @param raTolerance The tolerance parameter for Redemption Asset (RA)
      * @param ctTolerance The tolerance parameter for Cover Token (CT)
+     * @param deadline The deadline for the Vault deposit
+     * @param minimumLvOut The minimum amount of LV tokens to receive
      * @return received The amount of LV tokens user received from the deposit
      * @custom:emits DepositLv event on successful deposit
      * @custom:reverts If the deposit fails
@@ -247,13 +255,19 @@ interface ICorkRouterV1 is ICommon {
      * @param params The aggregator parameters for the repurchase
      * @param id The Market identifier for the ModuleCore contract
      * @param amount The amount of tokens user wants to repurchase
+     * @param deadline The deadline for the repurchase
      * @return result The repurchase results containing PA and DS amounts
      * @custom:emits Repurchase event on successful repurchase
      * @custom:reverts If the repurchase fails
      */
-    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
-        external
-        returns (RepurchaseReturn memory result);
+    function repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        uint256 deadline,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
+    ) external returns (RepurchaseReturn memory result);
 
     /**
      * @notice Executes a repurchase operation with permit
@@ -273,18 +287,21 @@ interface ICorkRouterV1 is ICommon {
         Id id,
         uint256 amount,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
     ) external returns (RepurchaseReturn memory result);
 
     /**
      * @notice Swaps Redemption Asset (RA) for Depeg-Swap token (DS)
      * @dev Takes input tokens (any token), swaps them if needed to RA, then swaps RA for DS token via the FlashSwapRouter
      * @param params The parameters for the RA to DS swap
+     * @param deadline The deadline for the swap
      * @return results The swap results including amount received and fees
      * @custom:emits Swap event with RaForDs swapType
      * @custom:reverts If the swap fails
      */
-    function swapRaForDs(SwapRaForDsParams calldata params)
+    function swapRaForDs(SwapRaForDsParams calldata params, uint256 deadline)
         external
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results);
 
@@ -309,11 +326,12 @@ interface ICorkRouterV1 is ICommon {
      * @notice Swaps Depeg-Swap token (DS) for Redemption Asset (RA)
      * @dev Takes DS tokens and an aggregator params object for final output token, swaps DS to RA, then optionally swaps RA to desired output token
      * @param params The parameters for the DS to RA swap
+     * @param deadline The deadline for the swap
      * @return amountOut The amount of output tokens received (after optional RA to output token swap)
      * @custom:emits Swap event with DsForRa swapType
      * @custom:reverts If the swap fails
      */
-    function swapDsForRa(SwapDsForRaParams memory params) external returns (uint256 amountOut);
+    function swapDsForRa(SwapDsForRaParams memory params, uint256 deadline) external returns (uint256 amountOut);
 
     /**
      * @notice Swaps Depeg-Swap token (DS) for Redemption Asset (RA) with permit
@@ -338,11 +356,12 @@ interface ICorkRouterV1 is ICommon {
      * @param params The aggregator parameters for the swap
      * @param id The Market identifier for the ModuleCore contract
      * @param amountOutMin The minimum amount of CT tokens to receive
+     * @param deadline The deadline for the swap
      * @return amountOut The amount of CT tokens received
      * @custom:emits Swap event with RaForCtExactIn swapType
      * @custom:reverts If the swap fails or if minimum output amount not met
      */
-    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
+    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin, uint256 deadline)
         external
         returns (uint256 amountOut);
 
@@ -372,12 +391,13 @@ interface ICorkRouterV1 is ICommon {
      * @param params The aggregator parameters for the swap
      * @param id The Market identifier for the ModuleCore contract
      * @param amountOut The exact amount of CT tokens to receive
+     * @param deadline The deadline for the swap
      * @return used The amount of RA tokens used
      * @return remaining The amount of RA tokens remaining unused (refunded to user)
      * @custom:emits Swap event with RaForCtExactOut swapType
      * @custom:reverts If the swap fails or if not enough input tokens to get exact output
      */
-    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
+    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut, uint256 deadline)
         external
         returns (uint256 used, uint256 remaining);
 
@@ -409,13 +429,18 @@ interface ICorkRouterV1 is ICommon {
      * @param id The Market identifier for the ModuleCore contract
      * @param ctAmount The exact amount of CT tokens to swap
      * @param raAmountOutMin The minimum amount of RA tokens to receive before optional swap
+     * @param deadline The deadline for the swap
      * @return amountOut The amount of output tokens received (after optional RA swap)
      * @custom:emits Swap event with CtForRaExactIn swapType
      * @custom:reverts If the swap fails or if minimum output amount not met
      */
-    function swapCtForRaExactIn(AggregatorParams memory params, Id id, uint256 ctAmount, uint256 raAmountOutMin)
-        external
-        returns (uint256 amountOut);
+    function swapCtForRaExactIn(
+        AggregatorParams memory params,
+        Id id,
+        uint256 ctAmount,
+        uint256 raAmountOutMin,
+        uint256 deadline
+    ) external returns (uint256 amountOut);
 
     /**
      * @notice Swaps exact amount of Cover Token (CT) for Redemption Asset (RA) and optionally to another output token with permit
@@ -446,15 +471,20 @@ interface ICorkRouterV1 is ICommon {
      * @param id The Market identifier for the ModuleCore contract
      * @param rAmountOut The exact amount of RA tokens to receive before optional swap
      * @param amountInMax The maximum amount of CT tokens to spend
+     * @param deadline The deadline for the swap
      * @return ctUsed The amount of CT tokens used
      * @return ctRemaining The amount of CT tokens remaining unused (refunded to user)
      * @return tokenOutAmountOut The actual amount of output tokens received (after optional RA swap)
      * @custom:emits Swap event with CtForRaExactOut swapType
      * @custom:reverts If the swap fails or if not enough input tokens to get exact output
      */
-    function swapCtForRaExactOut(AggregatorParams memory params, Id id, uint256 rAmountOut, uint256 amountInMax)
-        external
-        returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut);
+    function swapCtForRaExactOut(
+        AggregatorParams memory params,
+        Id id,
+        uint256 rAmountOut,
+        uint256 amountInMax,
+        uint256 deadline
+    ) external returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut);
 
     /**
      * @notice Swaps Cover Token (CT) for exact amount of Redemption Asset (RA) and optionally to another output token with permit
@@ -487,6 +517,7 @@ interface ICorkRouterV1 is ICommon {
      * @param zapOutParams The aggregator parameters for optionally swapping redeemed RA to output token
      * @param id The Market identifier for the ModuleCore contract
      * @param dsMaxIn The maximum amount of DS tokens to use
+     * @param deadline The deadline for the redemption
      * @return dsUsed The amount of DS tokens actually used
      * @return outAmount The amount of output tokens received
      * @custom:emits RedeemRaWithDsPa event on successful redemption
@@ -497,7 +528,8 @@ interface ICorkRouterV1 is ICommon {
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
         Id id,
-        uint256 dsMaxIn
+        uint256 dsMaxIn,
+        uint256 deadline
     ) external returns (uint256 dsUsed, uint256 outAmount);
 
     /**
