@@ -681,6 +681,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         // transfer unused DS and revoke allowances
         _transferToUser(ds, _contractBalance(ds));
+        // transfer unused PA
+        _transferToUser(pa, _contractBalance(pa));
+        // revoke allowances
         _revokeAllowanceForProtocol(ds);
         _revokeAllowanceForProtocol(pa);
 
