@@ -46,12 +46,11 @@ contract CorkSwapAggregator is ReentrancyGuardTransient, ICorkSwapAggregator {
         params.tokenIn.safeTransferFrom(msg.sender, address(this), params.amountIn);
 
         // Decode extRouterData to get necessary KyberSwap parameters
-        (address callTarget, address approveTarget, bytes memory targetData, uint256 flags) =
-            abi.decode(params.extRouterData, (address, address, bytes, uint256));
+        (address callTarget, bytes memory targetData, uint256 flags) =
+            abi.decode(params.extRouterData, (address, bytes, uint256));
 
-        // Approve KyberSwap router or approveTarget to spend these tokens
-        address approveAddress = approveTarget == address(0) ? KYBER_ROUTER : approveTarget;
-        params.tokenIn.safeApprove(approveAddress, params.amountIn);
+        // Approve KyberSwap router to spend these tokens
+        params.tokenIn.safeApprove(KYBER_ROUTER, params.amountIn);
 
         // Prepare the swap description for KyberSwap
         IMetaAggregationRouterV2.SwapDescriptionV2 memory desc = IMetaAggregationRouterV2.SwapDescriptionV2({
@@ -82,7 +81,7 @@ contract CorkSwapAggregator is ReentrancyGuardTransient, ICorkSwapAggregator {
         IMetaAggregationRouterV2.SwapExecutionParams memory executionParams = IMetaAggregationRouterV2
             .SwapExecutionParams({
             callTarget: callTarget,
-            approveTarget: approveTarget,
+            approveTarget: KYBER_ROUTER,
             targetData: targetData,
             desc: desc,
             clientData: ""
