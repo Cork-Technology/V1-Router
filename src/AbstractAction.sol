@@ -42,11 +42,11 @@ abstract contract AbstractAction is State {
     }
 
     function _transferFromUser(address token, uint256 amount) internal {
-        TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
+        TransferHelper.safeTransferFrom(token, _msgSender(), address(this), amount);
     }
 
     function _transferFromUserWithPermit(address token, uint256 amount) internal {
-        _permit2().transferFrom(msg.sender, address(this), SafeCast.toUint160(amount), token);
+        _permit2().transferFrom(_msgSender(), address(this), SafeCast.toUint160(amount), token);
     }
 
     function _increaseAllowanceForProtocol(address token, uint256 amount) internal {
@@ -62,7 +62,7 @@ abstract contract AbstractAction is State {
     }
 
     function _transferToUser(address token, uint256 amount) internal {
-        TransferHelper.safeTransfer(token, msg.sender, amount);
+        TransferHelper.safeTransfer(token, _msgSender(), amount);
     }
 
     function _transfer(address token, address to, uint256 amount) internal {
@@ -199,7 +199,7 @@ abstract contract AbstractAction is State {
             // solhint-disable-next-line no-empty-blocks
             try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin) returns (uint256) {}
             catch {
-                _transfer(ds, user, _contractBalance(ct));
+                _transfer(ds, user, _contractBalance(ds));
             }
         }
     }
@@ -269,7 +269,7 @@ abstract contract AbstractAction is State {
     function _handleSwapCallback(bytes calldata raw) internal {
         address manager = _hook().getPoolManager();
 
-        if (msg.sender != manager) {
+        if (_msgSender() != manager) {
             revert OnlyManager();
         }
 
@@ -302,5 +302,11 @@ abstract contract AbstractAction is State {
 
     function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
         _handleSwapCallback(rawData);
+    }
+
+    function withinDeadline(uint256 deadline) internal view {
+        if (block.timestamp > deadline) {
+            revert DeadlineExceeded();
+        }
     }
 }
