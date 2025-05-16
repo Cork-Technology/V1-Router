@@ -92,7 +92,7 @@ contract Repurchase is TestBase {
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
 
-        router.repurchase(params, defaultCurrencyId, amount, 0, 0, block.timestamp + 1000);
+        router.repurchase(params, defaultCurrencyId, amount, block.timestamp + 1 days, 0, 0);
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
