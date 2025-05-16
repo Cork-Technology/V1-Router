@@ -118,13 +118,16 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function repurchase(AggregatorParams calldata params, Id id, uint256 amount, uint256 deadline)
-        external
-        nonReentrant
-        returns (RepurchaseReturn memory result)
-    {
+    function repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        uint256 deadline,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
+    ) external nonReentrant returns (RepurchaseReturn memory result) {
         withinDeadline(deadline);
-        return _repurchase(params, id, amount, false);
+        return _repurchase(params, id, amount, false, minimumRepurchaseDsOut, minimumRepurchasePaOut);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -133,16 +136,22 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         Id id,
         uint256 amount,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
     ) external nonReentrant returns (RepurchaseReturn memory result) {
         permitCall(permit, signature);
-        return _repurchase(params, id, amount, true);
+        return _repurchase(params, id, amount, true, minimumRepurchaseDsOut, minimumRepurchasePaOut);
     }
 
-    function _repurchase(AggregatorParams calldata params, Id id, uint256 amount, bool usePermit)
-        internal
-        returns (RepurchaseReturn memory result)
-    {
+    function _repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        bool usePermit,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
+    ) internal returns (RepurchaseReturn memory result) {
         _validateParams(params);
 
         address token;
@@ -152,6 +161,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         (result.dsId, result.receivedPa, result.receivedDs, result.feePercentage, result.fee, result.exchangeRates) =
             _psm().repurchase(id, amount);
+
+        if (minimumRepurchaseDsOut > result.receivedDs || minimumRepurchasePaOut > result.receivedPa) {
+            revert InsufficientAmountOut();
+        }
 
         (, address ds) = __getCtDs(id);
         (, address pa) = __getRaPair(id);

@@ -59,7 +59,9 @@ contract Repurchase is TestBase {
             defaultAggregatorParams(address(randomToken), address(ra), amount),
             defaultCurrencyId,
             amount,
-            block.timestamp + 1000
+            block.timestamp + 1000,
+            0,
+            0
         );
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
@@ -90,7 +92,7 @@ contract Repurchase is TestBase {
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceBefore = pa.balanceOf(DEFAULT_ADDRESS);
 
-        router.repurchase(params, defaultCurrencyId, amount, block.timestamp + 1000);
+        router.repurchase(params, defaultCurrencyId, amount, block.timestamp + 1 days, 0, 0);
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(DEFAULT_ADDRESS);
         uint256 paBalanceAfter = pa.balanceOf(DEFAULT_ADDRESS);
@@ -134,7 +136,7 @@ contract Repurchase is TestBase {
         uint256 dsBalanceBefore = IERC20(ds).balanceOf(user);
         uint256 paBalanceBefore = pa.balanceOf(user);
 
-        router.repurchase(params, id, amount, permit, signature);
+        router.repurchase(params, id, amount, permit, signature, 0, 0);
 
         uint256 dsBalanceAfter = IERC20(ds).balanceOf(user);
         uint256 paBalanceAfter = pa.balanceOf(user);
