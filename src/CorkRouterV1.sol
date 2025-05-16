@@ -18,7 +18,12 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
  */
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
     /// @inheritdoc ICorkRouterV1
-    function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
+    function depositPsm(AggregatorParams calldata params, Id id, uint256 deadline)
+        external
+        nonReentrant
+        returns (uint256 received)
+    {
+        withinDeadline(deadline);
         return _depositPsm(params, id, false);
     }
 
@@ -51,12 +56,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
-        external
-        nonReentrant
-        returns (uint256 received)
-    {
-        return _depositLv(params, id, raTolerance, ctTolerance, false);
+    function depositLv(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 raTolerance,
+        uint256 ctTolerance,
+        uint256 deadline,
+        uint256 minimumLvOut
+    ) external nonReentrant returns (uint256 received) {
+        return _depositLv(params, id, raTolerance, ctTolerance, false, deadline, minimumLvOut);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -66,10 +74,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         uint256 raTolerance,
         uint256 ctTolerance,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) external nonReentrant returns (uint256 received) {
         _permit2().permit(_msgSender(), permit, signature);
-        return _depositLv(params, id, raTolerance, ctTolerance, true);
+        return _depositLv(params, id, raTolerance, ctTolerance, true, deadline, minimumLvOut);
     }
 
     function _depositLv(
@@ -77,7 +87,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         Id id,
         uint256 raTolerance,
         uint256 ctTolerance,
-        bool usePermit
+        bool usePermit,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) internal returns (uint256 received) {
         _validateParams(params);
 
@@ -85,9 +97,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (received, token) = _swap(params, usePermit);
 
         _increaseAllowanceForProtocol(token, received);
-        received = _vault().depositLv(id, received, raTolerance, ctTolerance);
+        received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
+
+        (address ra,) = __getRaPair(id);
+        (address ct,) = __getCtDs(id);
+
+        _transferToUser(ra, _contractBalance(ra));
+        _transferToUser(ct, _contractBalance(ct));
 
         emit DepositLv(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
@@ -100,11 +118,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
+    function repurchase(AggregatorParams calldata params, Id id, uint256 amount, uint256 deadline)
         external
         nonReentrant
         returns (RepurchaseReturn memory result)
     {
+        withinDeadline(deadline);
         return _repurchase(params, id, amount, false);
     }
 
@@ -155,11 +174,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapRaForDs(SwapRaForDsParams calldata params)
+    function swapRaForDs(SwapRaForDsParams calldata params, uint256 deadline)
         external
         nonReentrant
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
+        withinDeadline(deadline);
         return _swapRaForDs(params, false);
     }
 
@@ -211,7 +231,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapDsForRa(SwapDsForRaParams memory params) external nonReentrant returns (uint256 amountOut) {
+    function swapDsForRa(SwapDsForRaParams memory params, uint256 deadline)
+        external
+        nonReentrant
+        returns (uint256 amountOut)
+    {
+        withinDeadline(deadline);
         return _swapDsForRa(params, false);
     }
 
@@ -266,11 +291,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
+    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin, uint256 deadline)
         external
         nonReentrant
         returns (uint256 amountOut)
     {
+        withinDeadline(deadline);
         return _swapRaForCtExactIn(params, id, amountOutMin, false);
     }
 
@@ -325,11 +351,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     // we don't have an explicit slippage protection(max amount in) since the amount out we get from the aggregator swap(if any)s
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
     /// @inheritdoc ICorkRouterV1
-    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
+    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut, uint256 deadline)
         external
         nonReentrant
         returns (uint256 used, uint256 remaining)
     {
+        withinDeadline(deadline);
         return _swapRaForCtExactOut(params, id, amountOut, false);
     }
 
@@ -391,11 +418,14 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapCtForRaExactIn(AggregatorParams memory params, Id id, uint256 ctAmount, uint256 raAmountOutMin)
-        external
-        nonReentrant
-        returns (uint256 amountOut)
-    {
+    function swapCtForRaExactIn(
+        AggregatorParams memory params,
+        Id id,
+        uint256 ctAmount,
+        uint256 raAmountOutMin,
+        uint256 deadline
+    ) external nonReentrant returns (uint256 amountOut) {
+        withinDeadline(deadline);
         return _swapCtForRaExactIn(params, id, ctAmount, raAmountOutMin, false);
     }
 
@@ -471,11 +501,14 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapCtForRaExactOut(AggregatorParams memory params, Id id, uint256 rAmountOut, uint256 amountInMax)
-        external
-        nonReentrant
-        returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut)
-    {
+    function swapCtForRaExactOut(
+        AggregatorParams memory params,
+        Id id,
+        uint256 rAmountOut,
+        uint256 amountInMax,
+        uint256 deadline
+    ) external nonReentrant returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut) {
+        withinDeadline(deadline);
         return _swapCtForRaExactOut(params, id, rAmountOut, amountInMax, false);
     }
 
@@ -561,8 +594,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
         Id id,
-        uint256 dsMaxIn
+        uint256 dsMaxIn,
+        uint256 deadline
     ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
+        withinDeadline(deadline);
         return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, false);
     }
 

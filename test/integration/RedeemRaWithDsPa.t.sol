@@ -43,7 +43,7 @@ contract RedeemRaWithDsPa is TestBase {
         allowFullAllowance(address(pa), address(moduleCore));
 
         // add liquidity
-        moduleCore.depositLv(defaultCurrencyId, 10 ether, 0, 0);
+        moduleCore.depositLv(defaultCurrencyId, 10 ether, 0, 0, 0, block.timestamp);
         moduleCore.depositPsm(defaultCurrencyId, 10 ether);
     }
 
@@ -75,8 +75,9 @@ contract RedeemRaWithDsPa is TestBase {
         allowFullAllowance(ds, address(router));
         // remove the fee so that we can get accurate results
         corkConfig.updatePsmBaseRedemptionFeePercentage(defaultCurrencyId, 0);
-        (uint256 dsUsed, uint256 outAmount) =
-            router.redeemRaWithDsPa(zapInParams, zapOutParams, defaultCurrencyId, amount + 4 ether);
+        (uint256 dsUsed, uint256 outAmount) = router.redeemRaWithDsPa(
+            zapInParams, zapOutParams, defaultCurrencyId, amount + 4 ether, block.timestamp + 1000
+        );
 
         uint256 dsBalanceAfter = balance(ds, DEFAULT_ADDRESS);
         uint256 zapOutBalanceAfter = balance(zapOutOutputToken, DEFAULT_ADDRESS);
@@ -95,7 +96,11 @@ contract RedeemRaWithDsPa is TestBase {
 
         // Also transfer some DS tokens to the user
         (address ct, address ds) = moduleCore.swapAsset(defaultCurrencyId, 1);
-        router.depositPsm(defaultAggregatorParams(address(randomToken), address(ra), 5 ether), defaultCurrencyId);
+        router.depositPsm(
+            defaultAggregatorParams(address(randomToken), address(ra), 5 ether),
+            defaultCurrencyId,
+            block.timestamp + 1000
+        );
         IERC20(ds).transfer(user, IERC20(ds).balanceOf(DEFAULT_ADDRESS));
 
         // remove the fee so that we can get accurate results

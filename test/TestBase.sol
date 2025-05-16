@@ -110,7 +110,7 @@ contract TestBase is Helper {
         address spender,
         uint256 privateKey,
         address permit2Address
-    ) public view returns (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) {
+    ) public returns (IAllowanceTransfer.PermitSingle memory permit, bytes memory signature) {
         SigUtil sigUtil = new SigUtil();
 
         return sigUtil.createPermitAndSignature(token, amount, spender, privateKey, permit2Address);
@@ -122,7 +122,7 @@ contract TestBase is Helper {
         address spender,
         uint256 privateKey,
         address permit2Address
-    ) public view returns (IAllowanceTransfer.PermitBatch memory permit, bytes memory signature) {
+    ) public returns (IAllowanceTransfer.PermitBatch memory permit, bytes memory signature) {
         SigUtil sigUtil = new SigUtil();
 
         return sigUtil.createBatchPermitAndSignature(tokens, amounts, spender, privateKey, permit2Address);

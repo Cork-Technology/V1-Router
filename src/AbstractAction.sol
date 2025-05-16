@@ -303,4 +303,10 @@ abstract contract AbstractAction is State {
     function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
         _handleSwapCallback(rawData);
     }
+
+    function withinDeadline(uint256 deadline) internal view {
+        if (block.timestamp > deadline) {
+            revert DeadlineExceeded();
+        }
+    }
 }
