@@ -146,7 +146,9 @@ contract RedeemLv is TestBase {
         router.depositLv(params, id, 0, 0, block.timestamp, 0);
 
         // buy a little bit of ds so that we can test selling ct
-        flashSwapRouter.swapRaforDs(id, 1, 0.0001 ether, 0, defaultBuyApproxParams(), defaultOffchainGuessParams());
+        flashSwapRouter.swapRaforDs(
+            id, 1, 0.0001 ether, 0, defaultBuyApproxParams(), defaultOffchainGuessParams(), block.timestamp + 1000
+        );
 
         params = defaultAggregatorParams(address(pa), address(ra), amount);
 

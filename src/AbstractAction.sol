@@ -159,7 +159,9 @@ abstract contract AbstractAction is State {
         _revokeAllowanceForProtocol(ct);
     }
 
-    function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params) internal {
+    function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params, uint256 deadline)
+        internal
+    {
         LvRedeemParams memory lvRedeemParams = abi.decode(params, (LvRedeemParams));
 
         (address ct, address ds, uint256 dsId) = __findCtDsFromTokens(tokens, lvRedeemParams.id);
@@ -168,7 +170,9 @@ abstract contract AbstractAction is State {
         if (Asset(ct).isExpired()) {
             _handleLvRedeemDsExpired(lvRedeemParams.id, ct, ds, dsId);
         } else {
-            _handleLvRedeemDsActive(lvRedeemParams.id, ct, ds, dsId, lvRedeemParams.dsMinOut, lvRedeemParams.receiver);
+            _handleLvRedeemDsActive(
+                lvRedeemParams.id, ct, ds, dsId, lvRedeemParams.dsMinOut, lvRedeemParams.receiver, deadline
+            );
         }
 
         (, address out) = _swapNoTransfer(lvRedeemParams.paSwapAggregatorData);
@@ -178,9 +182,15 @@ abstract contract AbstractAction is State {
         _transfer(out, lvRedeemParams.receiver, _contractBalance(out));
     }
 
-    function _handleLvRedeemDsActive(Id id, address ct, address ds, uint256 dsId, uint256 amountOutMin, address user)
-        internal
-    {
+    function _handleLvRedeemDsActive(
+        Id id,
+        address ct,
+        address ds,
+        uint256 dsId,
+        uint256 amountOutMin,
+        address user,
+        uint256 deadline
+    ) internal {
         uint256 redeemAmount;
         bool isCt;
         uint256 diff;
@@ -215,7 +225,7 @@ abstract contract AbstractAction is State {
             // we essentially just give back the token to user if there's if for some reason
             // we fail to sell the DS
             // solhint-disable-next-line no-empty-blocks
-            try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin) returns (uint256) {}
+            try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin, deadline) returns (uint256) {}
             catch {
                 _transfer(ds, user, _contractBalance(ds));
             }

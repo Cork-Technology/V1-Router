@@ -114,7 +114,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         external
         nonReentrant
     {
-        _handleLvRedeem(tokens, routerData);
+        // valid for 30 minutes
+        _handleLvRedeem(tokens, routerData, block.timestamp + 30 minutes);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -193,7 +194,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
         withinDeadline(deadline);
-        return _swapRaForDs(params, false);
+        return _swapRaForDs(params, false, deadline);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -203,13 +204,14 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         bytes calldata signature
     ) external nonReentrant returns (IDsFlashSwapCore.SwapRaForDsReturn memory results) {
         permitCall(permit, signature);
-        return _swapRaForDs(params, true);
+        return _swapRaForDs(params, true, permit.details.expiration);
     }
 
-    function _swapRaForDs(SwapRaForDsParams calldata params, bool usePermit)
+    function _swapRaForDs(SwapRaForDsParams calldata params, bool usePermit, uint256 deadline)
         internal
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
+        withinDeadline(deadline);
         {
             uint256 currentDsId = _getDsId(params.id);
 
@@ -222,7 +224,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         _increaseAllowanceForRouter(token, amount);
         results = _flashSwapRouter().swapRaforDs(
-            params.id, params.dsId, amount, params.amountOutMin, params.approxParams, params.offchainGuess
+            params.id, params.dsId, amount, params.amountOutMin, params.approxParams, params.offchainGuess, deadline
         );
 
         (address ct, address ds) = __getCtDs(params.id);
@@ -258,7 +260,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         returns (uint256 amountOut)
     {
         withinDeadline(deadline);
-        return _swapDsForRa(params, false);
+        return _swapDsForRa(params, false, deadline);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -268,10 +270,13 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
         permitCall(permit, signature);
-        return _swapDsForRa(params, true);
+        return _swapDsForRa(params, true, permit.details.expiration);
     }
 
-    function _swapDsForRa(SwapDsForRaParams memory params, bool usePermit) internal returns (uint256 amountOut) {
+    function _swapDsForRa(SwapDsForRaParams memory params, bool usePermit, uint256 deadline)
+        internal
+        returns (uint256 amountOut)
+    {
         {
             uint256 currentDsId = _getDsId(params.id);
 
@@ -289,7 +294,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         }
 
         _increaseAllowanceForRouter(ds, params.amount);
-        amountOut = _flashSwapRouter().swapDsforRa(params.id, params.dsId, params.amount, params.raAmountOutMin);
+        amountOut =
+            _flashSwapRouter().swapDsforRa(params.id, params.dsId, params.amount, params.raAmountOutMin, deadline);
 
         address token;
 
