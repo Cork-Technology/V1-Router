@@ -716,9 +716,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     function permitCall(IPermit2.PermitSingle calldata permit, bytes calldata signature) internal {
         try _permit2().permit(_msgSender(), permit, signature) {}
         catch {
-            (uint160 amount, uint48 expiration, uint48 nonce) =
+            (uint160 amount, uint48 expiration,) =
                 _permit2().allowance(_msgSender(), permit.details.token, permit.spender);
-            if (amount < permit.details.amount || expiration < block.timestamp || nonce != permit.details.nonce) {
+            if (amount < permit.details.amount || expiration < block.timestamp) {
                 revert PermitFailed();
             }
         }
@@ -728,12 +728,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         try _permit2().permit(_msgSender(), permit, signature) {}
         catch {
             for (uint256 i = 0; i < permit.details.length; i++) {
-                (uint160 amount, uint48 expiration, uint48 nonce) =
+                (uint160 amount, uint48 expiration,) =
                     _permit2().allowance(_msgSender(), permit.details[i].token, permit.spender);
-                if (
-                    amount < permit.details[i].amount || expiration < block.timestamp
-                        || nonce != permit.details[i].nonce
-                ) {
+                if (amount < permit.details[i].amount || expiration < block.timestamp) {
                     revert PermitFailed();
                 }
             }
