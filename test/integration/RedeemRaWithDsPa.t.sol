@@ -9,6 +9,7 @@ import {Id} from "Depeg-swap/contracts/libraries/Pair.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDsFlashSwapCore} from "Depeg-swap/contracts/interfaces/IDsFlashSwapRouter.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {ICorkRouterV1} from "../../src/interfaces/ICorkRouterV1.sol";
 
 contract RedeemRaWithDsPa is TestBase {
     DummyWETH internal ra;
@@ -75,9 +76,14 @@ contract RedeemRaWithDsPa is TestBase {
         allowFullAllowance(ds, address(router));
         // remove the fee so that we can get accurate results
         corkConfig.updatePsmBaseRedemptionFeePercentage(defaultCurrencyId, 0);
-        (uint256 dsUsed, uint256 outAmount) = router.redeemRaWithDsPa(
-            zapInParams, zapOutParams, defaultCurrencyId, amount + 4 ether, block.timestamp + 1000
-        );
+        ICorkRouterV1.RedeemRaWithDsPaParams memory params = ICorkRouterV1.RedeemRaWithDsPaParams({
+            id: defaultCurrencyId,
+            dsMaxIn: amount + 4 ether,
+            minExchangeRate: 0,
+            maxFeeAmount: 100 ether
+        });
+        (uint256 dsUsed, uint256 outAmount) =
+            router.redeemRaWithDsPa(zapInParams, zapOutParams, params, block.timestamp + 1000);
 
         uint256 dsBalanceAfter = balance(ds, DEFAULT_ADDRESS);
         uint256 zapOutBalanceAfter = balance(zapOutOutputToken, DEFAULT_ADDRESS);
@@ -139,9 +145,14 @@ contract RedeemRaWithDsPa is TestBase {
                 defaultAggregatorParams(enableZapIn ? address(randomToken) : address(pa), address(pa), amount);
             ICommon.AggregatorParams memory zapOutParams =
                 defaultAggregatorParams(address(ra), zapOutOutputToken, amount);
-            (uint256 dsUsed, uint256 outAmount) = router.redeemRaWithDsPa(
-                zapInParams, zapOutParams, defaultCurrencyId, amount + 4 ether, permit, signature
-            );
+            ICorkRouterV1.RedeemRaWithDsPaParams memory params = ICorkRouterV1.RedeemRaWithDsPaParams({
+                id: defaultCurrencyId,
+                dsMaxIn: amount + 4 ether,
+                minExchangeRate: 0,
+                maxFeeAmount: 100 ether
+            });
+            (uint256 dsUsed, uint256 outAmount) =
+                router.redeemRaWithDsPa(zapInParams, zapOutParams, params, permit, signature);
 
             assertEq(dsUsed, amount);
             assertEq(outAmount, amount);

@@ -26,6 +26,12 @@ interface ICommon {
     /// @notice Thrown when the deadline is exceeded
     error DeadlineExceeded();
 
+    /// @notice Thrown when the exchange rate is too low
+    error ExchangeRateTooLow();
+
+    /// @notice Thrown when the fee amount is too high
+    error FeeAmountTooHigh();
+
     /// @notice additional parameters for external aggregator adapters(i.e contract that handles interaction to the actual routers)
     /// external adapters should respect this parameters
     struct AggregatorParams {

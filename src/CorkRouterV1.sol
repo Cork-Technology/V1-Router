@@ -626,59 +626,68 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
-        Id id,
-        uint256 dsMaxIn,
+        RedeemRaWithDsPaParams memory params,
         uint256 deadline
     ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
         withinDeadline(deadline);
-        return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, false);
+        return _redeemRaWithDsPa(zapInParams, zapOutParams, params, false);
     }
 
     /// @inheritdoc ICorkRouterV1
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
-        Id id,
-        uint256 dsMaxIn,
+        RedeemRaWithDsPaParams memory params,
         IPermit2.PermitBatch calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
         batchPermitCall(permit, signature);
-        return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, true);
+        return _redeemRaWithDsPa(zapInParams, zapOutParams, params, true);
     }
 
     function _redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
-        Id id,
-        uint256 dsMaxIn,
+        RedeemRaWithDsPaParams memory params,
         bool usePermit
     ) internal returns (uint256 dsUsed, uint256 outAmount) {
         _validateParamsCalldata(zapInParams);
         _validateParams(zapOutParams);
 
-        (, address ds) = __getCtDs(id);
+        (, address ds) = __getCtDs(params.id);
 
         (uint256 amount, address pa) = _swap(zapInParams, usePermit);
 
         if (usePermit) {
-            _transferFromUserWithPermit(ds, dsMaxIn);
+            _transferFromUserWithPermit(ds, params.dsMaxIn);
         } else {
-            _transferFromUser(ds, dsMaxIn);
+            _transferFromUser(ds, params.dsMaxIn);
         }
 
-        _increaseAllowanceForProtocol(ds, dsMaxIn);
+        _increaseAllowanceForProtocol(ds, params.dsMaxIn);
         _increaseAllowanceForProtocol(pa, amount);
 
-        uint256 dsId = Initialize(core).lastDsId(id);
+        uint256 dsId = Initialize(core).lastDsId(params.id);
 
-        (zapOutParams.amountIn,,, dsUsed) = _psm().redeemRaWithDsPa(id, dsId, amount);
+        {
+            uint256 exchangeRateApplied;
+            uint256 feeAmountDeducted;
+            (zapOutParams.amountIn, exchangeRateApplied, feeAmountDeducted, dsUsed) =
+                _psm().redeemRaWithDsPa(params.id, dsId, amount);
 
+            if (exchangeRateApplied < params.minExchangeRate) {
+                revert ExchangeRateTooLow();
+            }
+
+            if (feeAmountDeducted > params.maxFeeAmount) {
+                revert FeeAmountTooHigh();
+            }
+        }
         address outToken;
         (outAmount, outToken) = _swapNoTransfer(zapOutParams);
 
         if (zapOutParams.enableAggregator == false) {
-            (address ra,) = __getRaPair(id);
+            (address ra,) = __getRaPair(params.id);
             // revert if no zapout swap occured and output is not RA
             if (outToken != ra) revert InvalidTokens();
         }
@@ -693,7 +702,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         _revokeAllowanceForProtocol(ds);
         _revokeAllowanceForProtocol(pa);
 
-        emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
+        emit RedeemRaWithDsPa(
+            _msgSender(), pa, amount, ds, params.dsMaxIn, params.id, dsId, outToken, dsUsed, outAmount
+        );
     }
 
     function _emitSwapEvent(SwapEventParams memory params) internal {
