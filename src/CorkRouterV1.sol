@@ -18,7 +18,12 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
  */
 contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter {
     /// @inheritdoc ICorkRouterV1
-    function depositPsm(AggregatorParams calldata params, Id id) external nonReentrant returns (uint256 received) {
+    function depositPsm(AggregatorParams calldata params, Id id, uint256 deadline)
+        external
+        nonReentrant
+        returns (uint256 received)
+    {
+        withinDeadline(deadline);
         return _depositPsm(params, id, false);
     }
 
@@ -30,7 +35,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         bytes calldata signature
     ) external nonReentrant returns (uint256 received) {
         // Process permit first to get token approval
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
 
         return _depositPsm(params, id, true);
     }
@@ -51,12 +56,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function depositLv(AggregatorParams calldata params, Id id, uint256 raTolerance, uint256 ctTolerance)
-        external
-        nonReentrant
-        returns (uint256 received)
-    {
-        return _depositLv(params, id, raTolerance, ctTolerance, false);
+    function depositLv(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 raTolerance,
+        uint256 ctTolerance,
+        uint256 deadline,
+        uint256 minimumLvOut
+    ) external nonReentrant returns (uint256 received) {
+        return _depositLv(params, id, raTolerance, ctTolerance, false, deadline, minimumLvOut);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -66,10 +74,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         uint256 raTolerance,
         uint256 ctTolerance,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) external nonReentrant returns (uint256 received) {
-        _permit2().permit(_msgSender(), permit, signature);
-        return _depositLv(params, id, raTolerance, ctTolerance, true);
+        permitCall(permit, signature);
+        return _depositLv(params, id, raTolerance, ctTolerance, true, deadline, minimumLvOut);
     }
 
     function _depositLv(
@@ -77,7 +87,9 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         Id id,
         uint256 raTolerance,
         uint256 ctTolerance,
-        bool usePermit
+        bool usePermit,
+        uint256 deadline,
+        uint256 minimumLvOut
     ) internal returns (uint256 received) {
         _validateParams(params);
 
@@ -85,9 +97,15 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         (received, token) = _swap(params, usePermit);
 
         _increaseAllowanceForProtocol(token, received);
-        received = _vault().depositLv(id, received, raTolerance, ctTolerance);
+        received = _vault().depositLv(id, received, raTolerance, ctTolerance, minimumLvOut, deadline);
 
         _transferAllLvToUser(id);
+
+        (address ra,) = __getRaPair(id);
+        (address ct,) = __getCtDs(id);
+
+        _transferToUser(ra, _contractBalance(ra));
+        _transferToUser(ct, _contractBalance(ct));
 
         emit DepositLv(_msgSender(), params.tokenIn, params.amountIn, id, received);
     }
@@ -96,16 +114,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         external
         nonReentrant
     {
-        _handleLvRedeem(tokens, routerData);
+        // valid for 30 minutes
+        _handleLvRedeem(tokens, routerData, block.timestamp + 30 minutes);
     }
 
     /// @inheritdoc ICorkRouterV1
-    function repurchase(AggregatorParams calldata params, Id id, uint256 amount)
-        external
-        nonReentrant
-        returns (RepurchaseReturn memory result)
-    {
-        return _repurchase(params, id, amount, false);
+    function repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        uint256 deadline,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
+    ) external nonReentrant returns (RepurchaseReturn memory result) {
+        withinDeadline(deadline);
+        return _repurchase(params, id, amount, false, minimumRepurchaseDsOut, minimumRepurchasePaOut);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -114,16 +137,22 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         Id id,
         uint256 amount,
         IPermit2.PermitSingle calldata permit,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
     ) external nonReentrant returns (RepurchaseReturn memory result) {
-        _permit2().permit(_msgSender(), permit, signature);
-        return _repurchase(params, id, amount, true);
+        permitCall(permit, signature);
+        return _repurchase(params, id, amount, true, minimumRepurchaseDsOut, minimumRepurchasePaOut);
     }
 
-    function _repurchase(AggregatorParams calldata params, Id id, uint256 amount, bool usePermit)
-        internal
-        returns (RepurchaseReturn memory result)
-    {
+    function _repurchase(
+        AggregatorParams calldata params,
+        Id id,
+        uint256 amount,
+        bool usePermit,
+        uint256 minimumRepurchaseDsOut,
+        uint256 minimumRepurchasePaOut
+    ) internal returns (RepurchaseReturn memory result) {
         _validateParams(params);
 
         address token;
@@ -133,6 +162,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
 
         (result.dsId, result.receivedPa, result.receivedDs, result.feePercentage, result.fee, result.exchangeRates) =
             _psm().repurchase(id, amount);
+
+        if (minimumRepurchaseDsOut > result.receivedDs || minimumRepurchasePaOut > result.receivedPa) {
+            revert InsufficientAmountOut();
+        }
 
         (, address ds) = __getCtDs(id);
         (, address pa) = __getRaPair(id);
@@ -155,12 +188,13 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapRaForDs(SwapRaForDsParams calldata params)
+    function swapRaForDs(SwapRaForDsParams calldata params, uint256 deadline)
         external
         nonReentrant
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
-        return _swapRaForDs(params, false);
+        withinDeadline(deadline);
+        return _swapRaForDs(params, false, deadline);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -169,28 +203,37 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (IDsFlashSwapCore.SwapRaForDsReturn memory results) {
-        _permit2().permit(_msgSender(), permit, signature);
-        return _swapRaForDs(params, true);
+        permitCall(permit, signature);
+        return _swapRaForDs(params, true, permit.details.expiration);
     }
 
-    function _swapRaForDs(SwapRaForDsParams calldata params, bool usePermit)
+    function _swapRaForDs(SwapRaForDsParams calldata params, bool usePermit, uint256 deadline)
         internal
         returns (IDsFlashSwapCore.SwapRaForDsReturn memory results)
     {
+        withinDeadline(deadline);
+        {
+            uint256 currentDsId = _getDsId(params.id);
+
+            if (currentDsId != params.dsId) revert Expired();
+        }
+
         _validateParamsCalldata(params.inputTokenAggregatorParams);
 
         (uint256 amount, address token) = _swap(params.inputTokenAggregatorParams, usePermit);
 
         _increaseAllowanceForRouter(token, amount);
         results = _flashSwapRouter().swapRaforDs(
-            params.id, params.dsId, amount, params.amountOutMin, params.approxParams, params.offchainGuess
+            params.id, params.dsId, amount, params.amountOutMin, params.approxParams, params.offchainGuess, deadline
         );
 
         (address ct, address ds) = __getCtDs(params.id);
 
+        uint256 totalDs = _contractBalance(ds);
+
         // we transfer both refunded ct and ds tokens
         _transferToUser(ct, _contractBalance(ct));
-        _transferToUser(ds, _contractBalance(ds));
+        _transferToUser(ds, totalDs);
 
         _emitSwapEvent(
             SwapEventParams({
@@ -199,7 +242,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
                 tokenIn: params.inputTokenAggregatorParams.tokenIn,
                 amountIn: params.inputTokenAggregatorParams.amountIn,
                 tokenOut: ds,
-                amountOut: _contractBalance(ds),
+                amountOut: totalDs,
                 id: params.id,
                 dsId: params.dsId,
                 minOutput: params.amountOutMin,
@@ -211,8 +254,13 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapDsForRa(SwapDsForRaParams memory params) external nonReentrant returns (uint256 amountOut) {
-        return _swapDsForRa(params, false);
+    function swapDsForRa(SwapDsForRaParams memory params, uint256 deadline)
+        external
+        nonReentrant
+        returns (uint256 amountOut)
+    {
+        withinDeadline(deadline);
+        return _swapDsForRa(params, false, deadline);
     }
 
     /// @inheritdoc ICorkRouterV1
@@ -221,11 +269,20 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
-        return _swapDsForRa(params, true);
+        permitCall(permit, signature);
+        return _swapDsForRa(params, true, permit.details.expiration);
     }
 
-    function _swapDsForRa(SwapDsForRaParams memory params, bool usePermit) internal returns (uint256 amountOut) {
+    function _swapDsForRa(SwapDsForRaParams memory params, bool usePermit, uint256 deadline)
+        internal
+        returns (uint256 amountOut)
+    {
+        {
+            uint256 currentDsId = _getDsId(params.id);
+
+            if (currentDsId != params.dsId) revert Expired();
+        }
+
         _validateParams(params.raAggregatorParams);
 
         (, address ds) = __getCtDs(params.id);
@@ -237,7 +294,8 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         }
 
         _increaseAllowanceForRouter(ds, params.amount);
-        amountOut = _flashSwapRouter().swapDsforRa(params.id, params.dsId, params.amount, params.raAmountOutMin);
+        amountOut =
+            _flashSwapRouter().swapDsforRa(params.id, params.dsId, params.amount, params.raAmountOutMin, deadline);
 
         address token;
 
@@ -266,11 +324,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin)
+    function swapRaForCtExactIn(AggregatorParams calldata params, Id id, uint256 amountOutMin, uint256 deadline)
         external
         nonReentrant
         returns (uint256 amountOut)
     {
+        withinDeadline(deadline);
         return _swapRaForCtExactIn(params, id, amountOutMin, false);
     }
 
@@ -282,7 +341,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapRaForCtExactIn(params, id, amountOutMin, true);
     }
 
@@ -325,11 +384,12 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     // we don't have an explicit slippage protection(max amount in) since the amount out we get from the aggregator swap(if any)s
     // automatically become the max input tokens. If it needs more than that the swap will naturally fails
     /// @inheritdoc ICorkRouterV1
-    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut)
+    function swapRaForCtExactOut(AggregatorParams calldata params, Id id, uint256 amountOut, uint256 deadline)
         external
         nonReentrant
         returns (uint256 used, uint256 remaining)
     {
+        withinDeadline(deadline);
         return _swapRaForCtExactOut(params, id, amountOut, false);
     }
 
@@ -341,7 +401,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 used, uint256 remaining) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapRaForCtExactOut(params, id, amountOut, true);
     }
 
@@ -391,11 +451,14 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapCtForRaExactIn(AggregatorParams memory params, Id id, uint256 ctAmount, uint256 raAmountOutMin)
-        external
-        nonReentrant
-        returns (uint256 amountOut)
-    {
+    function swapCtForRaExactIn(
+        AggregatorParams memory params,
+        Id id,
+        uint256 ctAmount,
+        uint256 raAmountOutMin,
+        uint256 deadline
+    ) external nonReentrant returns (uint256 amountOut) {
+        withinDeadline(deadline);
         return _swapCtForRaExactIn(params, id, ctAmount, raAmountOutMin, false);
     }
 
@@ -408,7 +471,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 amountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapCtForRaExactIn(params, id, ctAmount, raAmountOutMin, true);
     }
 
@@ -471,11 +534,14 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
     }
 
     /// @inheritdoc ICorkRouterV1
-    function swapCtForRaExactOut(AggregatorParams memory params, Id id, uint256 rAmountOut, uint256 amountInMax)
-        external
-        nonReentrant
-        returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut)
-    {
+    function swapCtForRaExactOut(
+        AggregatorParams memory params,
+        Id id,
+        uint256 rAmountOut,
+        uint256 amountInMax,
+        uint256 deadline
+    ) external nonReentrant returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut) {
+        withinDeadline(deadline);
         return _swapCtForRaExactOut(params, id, rAmountOut, amountInMax, false);
     }
 
@@ -488,7 +554,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitSingle calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 ctUsed, uint256 ctRemaining, uint256 tokenOutAmountOut) {
-        _permit2().permit(_msgSender(), permit, signature);
+        permitCall(permit, signature);
         return _swapCtForRaExactOut(params, id, rAmountOut, amountInMax, true);
     }
 
@@ -561,8 +627,10 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
         Id id,
-        uint256 dsMaxIn
+        uint256 dsMaxIn,
+        uint256 deadline
     ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
+        withinDeadline(deadline);
         return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, false);
     }
 
@@ -575,7 +643,7 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         IPermit2.PermitBatch calldata permit,
         bytes calldata signature
     ) external nonReentrant returns (uint256 dsUsed, uint256 outAmount) {
-        _permit2().permit(_msgSender(), permit, signature);
+        batchPermitCall(permit, signature);
         return _redeemRaWithDsPa(zapInParams, zapOutParams, id, dsMaxIn, true);
     }
 
@@ -609,10 +677,21 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         address outToken;
         (outAmount, outToken) = _swapNoTransfer(zapOutParams);
 
+        if (zapOutParams.enableAggregator == false) {
+            (address ra,) = __getRaPair(id);
+            // revert if no zapout swap occured and output is not RA
+            if (outToken != ra) revert InvalidTokens();
+        }
+
         _transferToUser(outToken, _contractBalance(outToken));
 
-        // transfer unused DS
+        // transfer unused DS and revoke allowances
         _transferToUser(ds, _contractBalance(ds));
+        // transfer unused PA
+        _transferToUser(pa, _contractBalance(pa));
+        // revoke allowances
+        _revokeAllowanceForProtocol(ds);
+        _revokeAllowanceForProtocol(pa);
 
         emit RedeemRaWithDsPa(_msgSender(), pa, amount, ds, dsMaxIn, id, dsId, outToken, dsUsed, outAmount);
     }
@@ -632,5 +711,29 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
             params.unused,
             params.used
         );
+    }
+
+    function permitCall(IPermit2.PermitSingle calldata permit, bytes calldata signature) internal {
+        try _permit2().permit(_msgSender(), permit, signature) {}
+        catch {
+            (uint160 amount, uint48 expiration,) =
+                _permit2().allowance(_msgSender(), permit.details.token, permit.spender);
+            if (amount < permit.details.amount || expiration < block.timestamp) {
+                revert PermitFailed();
+            }
+        }
+    }
+
+    function batchPermitCall(IPermit2.PermitBatch calldata permit, bytes calldata signature) internal {
+        try _permit2().permit(_msgSender(), permit, signature) {}
+        catch {
+            for (uint256 i = 0; i < permit.details.length; i++) {
+                (uint160 amount, uint48 expiration,) =
+                    _permit2().allowance(_msgSender(), permit.details[i].token, permit.spender);
+                if (amount < permit.details[i].amount || expiration < block.timestamp) {
+                    revert PermitFailed();
+                }
+            }
+        }
     }
 }
