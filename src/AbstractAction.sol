@@ -155,8 +155,6 @@ abstract contract AbstractAction is State {
         _increaseAllowanceForProtocol(ct, _contractBalance(ct));
 
         _psm().redeemWithExpiredCt(id, dsId, _contractBalance(ct));
-
-        _revokeAllowanceForProtocol(ct);
     }
 
     function _handleLvRedeem(IWithdrawalRouter.Tokens[] calldata tokens, bytes calldata params, uint256 deadline)
@@ -216,8 +214,8 @@ abstract contract AbstractAction is State {
             // will just transfer the ct to user if it fails to swap
             if (!success) {
                 _transfer(ct, user, _contractBalance(ct));
+                _revokeAllowance(ct, hook);
             }
-            _revokeAllowance(ct, hook);
         } else {
             _increaseAllowanceForRouter(ds, diff);
             IDsFlashSwapCore flashswapRouter = _flashSwapRouter();
@@ -228,11 +226,9 @@ abstract contract AbstractAction is State {
             try flashswapRouter.swapDsforRa(id, dsId, diff, amountOutMin, deadline) returns (uint256) {}
             catch {
                 _transfer(ds, user, _contractBalance(ds));
+                _revokeAllowanceForRouter(ds);
             }
-            _revokeAllowanceForRouter(ds);
         }
-        _revokeAllowanceForProtocol(ct);
-        _revokeAllowanceForProtocol(ds);
     }
 
     function _swap(AggregatorParams memory params, bool usePermit) internal returns (uint256 amount, address token) {
