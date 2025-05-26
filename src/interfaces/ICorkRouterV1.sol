@@ -44,6 +44,12 @@ interface ICorkRouterV1 is ICommon {
         uint256 used;
     }
 
+    struct RedeemRaWithDsPaParams {
+        Id id;
+        uint256 dsMaxIn;
+        uint256 minRaAmountOut;
+    }
+
     /**
      * @dev Enum of different swap types supported by the router
      * @param RaForDs Swap Redemption Asset (RA) for Depeg-Swap token (DS)
@@ -515,8 +521,7 @@ interface ICorkRouterV1 is ICommon {
      * @dev Takes input tokens (any token), swaps them if needed to PA, combines with DS to redeem RA, then optionally swaps RA to desired output token
      * @param zapInParams The aggregator parameters for swapping input to PA
      * @param zapOutParams The aggregator parameters for optionally swapping redeemed RA to output token
-     * @param id The Market identifier for the ModuleCore contract
-     * @param dsMaxIn The maximum amount of DS tokens to use
+     * @param params The parameters for the redemption
      * @param deadline The deadline for the redemption
      * @return dsUsed The amount of DS tokens actually used
      * @return outAmount The amount of output tokens received
@@ -527,8 +532,7 @@ interface ICorkRouterV1 is ICommon {
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
-        Id id,
-        uint256 dsMaxIn,
+        RedeemRaWithDsPaParams memory params,
         uint256 deadline
     ) external returns (uint256 dsUsed, uint256 outAmount);
 
@@ -537,8 +541,7 @@ interface ICorkRouterV1 is ICommon {
      * @dev Takes input tokens (any token), swaps them if needed to PA, combines with DS to redeem RA, then optionally swaps RA to desired output token
      * @param zapInParams The aggregator parameters for swapping input to PA
      * @param zapOutParams The aggregator parameters for optionally swapping redeemed RA to output token
-     * @param id The Market identifier for the ModuleCore contract
-     * @param dsMaxIn The maximum amount of DS tokens to use
+     * @param params The parameters for the redemption
      * @param permit The permit data for the redemption
      * @param signature The signature for the permit
      * @return dsUsed The amount of DS tokens actually used
@@ -551,8 +554,7 @@ interface ICorkRouterV1 is ICommon {
     function redeemRaWithDsPa(
         AggregatorParams calldata zapInParams,
         AggregatorParams memory zapOutParams,
-        Id id,
-        uint256 dsMaxIn,
+        RedeemRaWithDsPaParams memory params,
         IPermit2.PermitBatch calldata permit,
         bytes calldata signature
     ) external returns (uint256 dsUsed, uint256 outAmount);
