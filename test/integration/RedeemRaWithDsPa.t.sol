@@ -79,8 +79,7 @@ contract RedeemRaWithDsPa is TestBase {
         ICorkRouterV1.RedeemRaWithDsPaParams memory params = ICorkRouterV1.RedeemRaWithDsPaParams({
             id: defaultCurrencyId,
             dsMaxIn: amount + 4 ether,
-            minExchangeRate: 0,
-            maxFeeAmount: 100 ether
+            minRaAmountOut: 0.1 ether
         });
         (uint256 dsUsed, uint256 outAmount) =
             router.redeemRaWithDsPa(zapInParams, zapOutParams, params, block.timestamp + 1000);
@@ -148,8 +147,7 @@ contract RedeemRaWithDsPa is TestBase {
             ICorkRouterV1.RedeemRaWithDsPaParams memory params = ICorkRouterV1.RedeemRaWithDsPaParams({
                 id: defaultCurrencyId,
                 dsMaxIn: amount + 4 ether,
-                minExchangeRate: 0,
-                maxFeeAmount: 100 ether
+                minRaAmountOut: 0.1 ether
             });
             (uint256 dsUsed, uint256 outAmount) =
                 router.redeemRaWithDsPa(zapInParams, zapOutParams, params, permit, signature);

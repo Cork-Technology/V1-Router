@@ -47,8 +47,7 @@ interface ICorkRouterV1 is ICommon {
     struct RedeemRaWithDsPaParams {
         Id id;
         uint256 dsMaxIn;
-        uint256 minExchangeRate;
-        uint256 maxFeeAmount;
+        uint256 minRaAmountOut;
     }
 
     /**

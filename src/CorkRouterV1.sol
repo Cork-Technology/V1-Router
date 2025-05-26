@@ -670,18 +670,17 @@ contract CorkRouterV1 is State, AbstractAction, ICorkRouterV1, IWithdrawalRouter
         uint256 dsId = Initialize(core).lastDsId(params.id);
 
         {
-            uint256 exchangeRateApplied;
-            uint256 feeAmountDeducted;
-            (zapOutParams.amountIn, exchangeRateApplied, feeAmountDeducted, dsUsed) =
-                _psm().redeemRaWithDsPa(params.id, dsId, amount);
+            uint256 raRecieved;
+            (raRecieved,,, dsUsed) = _psm().redeemRaWithDsPa(params.id, dsId, amount);
 
-            if (exchangeRateApplied < params.minExchangeRate) {
-                revert ExchangeRateTooLow();
+            if (raRecieved < params.minRaAmountOut) {
+                revert InsufficientAmountOut();
             }
 
-            if (feeAmountDeducted > params.maxFeeAmount) {
-                revert FeeAmountTooHigh();
+            if (raRecieved > params.minRaAmountOut && zapOutParams.enableAggregator == true) {
+                zapOutParams.amountOutMin = zapOutParams.amountOutMin * raRecieved / params.minRaAmountOut;
             }
+            zapOutParams.amountIn = raRecieved;
         }
         address outToken;
         (outAmount, outToken) = _swapNoTransfer(zapOutParams);
